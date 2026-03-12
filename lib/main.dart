@@ -24,8 +24,12 @@ void main() async {
     ),
   );
 
-  // Disable Firestore web persistence to avoid IndexedDB corruption
-  FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: false);
+  // Safely attempt to disable web persistence (not supported on all FlutterFire 3.x versions)
+  try {
+    FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: false);
+  } catch (_) {
+    // Silently ignore — not critical on web
+  }
 
   runApp(const DigitalPlugApp());
 }
