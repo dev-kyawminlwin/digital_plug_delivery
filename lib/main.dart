@@ -16,11 +16,17 @@ void main() async {
   await Firebase.initializeApp(
     options: const FirebaseOptions(
       apiKey: 'AIzaSyAE0OwKyLnxr5VAs45eOOB5HafzqfUbKq4',
-      appId: '1:673069079625:android:b7a4b01936aa5f107ef398',
+      authDomain: 'digital-plug.firebaseapp.com',
+      appId: '1:673069079625:web:b7a4b01936aa5f107ef398',
       messagingSenderId: '673069079625',
       projectId: 'digital-plug',
+      storageBucket: 'digital-plug.firebasestorage.app',
     ),
   );
+
+  // Disable Firestore web persistence to prevent corrupted IndexedDB
+  FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: false);
+
   runApp(const DigitalPlugApp());
 }
 

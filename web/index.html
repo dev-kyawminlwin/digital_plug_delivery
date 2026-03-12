@@ -2,48 +2,44 @@
 <html>
 
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
-
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Digital Plug Delivery - Food delivery from your favourite restaurants.">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="digital_plug_delivery">
+  <meta name="apple-mobile-web-app-title" content="Digital Plug Delivery">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png" />
 
-  <title>digital_plug_delivery</title>
+  <title>Digital Plug Delivery</title>
   <link rel="manifest" href="manifest.json">
 
-  <!-- Removed Google Maps SDK for Free OSM Alternative -->
+  <!-- Firebase JS SDK (required for Flutter Web + Firebase) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAE0OwKyLnxr5VAs45eOOB5HafzqfUbKq4",
+      authDomain: "digital-plug.firebaseapp.com",
+      projectId: "digital-plug",
+      storageBucket: "digital-plug.firebasestorage.app",
+      messagingSenderId: "673069079625",
+      appId: "1:673069079625:web:b7a4b01936aa5f107ef398"
+    };
+
+    // Initialize Firebase globally for Flutter Web
+    const app = initializeApp(firebaseConfig);
+  </script>
+</head>
 
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
-
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
   <script src="flutter_bootstrap.js" async></script>
 </body>
 
