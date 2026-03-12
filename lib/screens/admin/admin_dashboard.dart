@@ -256,7 +256,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   // ─── TAB 0: LIVE ORDERS ───────────────────────────────────────────────
   Widget _buildOrdersTab(String businessId) {
     return StreamBuilder<List<OrderModel>>(
-      stream: OrderService().getBusinessOrders(businessId),
+      stream: OrderService().getOrders(businessId),
       builder: (context, snapshot) {
         if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
@@ -406,7 +406,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (order.itemsSummary.isNotEmpty)
-                  Text(order.itemsSummary, style: TextStyle(fontSize: 12, color: Colors.grey.shade600, height: 1.4), maxLines: 3, overflow: TextOverflow.ellipsis),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      order.itemsSummary,
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600, height: 1.4),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 const SizedBox(height: 8),
                 Row(
                   children: [

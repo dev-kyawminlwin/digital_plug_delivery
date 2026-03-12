@@ -33,7 +33,9 @@ class OrderModel {
   final String riderName; // Phase 9: Show assigned rider name to customer
   final DateTime createdAt;
   final DateTime updatedAt;
-  final String paymentMethod; // Phase 8: Tracking Cash vs KPay
+  final String paymentMethod;
+  final String itemsSummary; // Phase 14: Human-readable items list for order cards
+
 
   OrderModel({
     required this.id,
@@ -51,6 +53,7 @@ class OrderModel {
     required this.createdAt,
     required this.updatedAt,
     required this.paymentMethod,
+    this.itemsSummary = '',
   });
 
   // 3. Factory for reading from Firestore
@@ -72,7 +75,8 @@ class OrderModel {
       updatedAt: map['updatedAt'] != null 
           ? (map['updatedAt'] as Timestamp).toDate()
           : (map['createdAt'] as Timestamp).toDate(),
-      paymentMethod: map['paymentMethod'] ?? 'Cash', // Default to cash for older orders
+      paymentMethod: map['paymentMethod'] ?? 'Cash',
+      itemsSummary: map['itemsSummary'] as String? ?? '',
     );
   }
 
@@ -93,6 +97,7 @@ class OrderModel {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
       'paymentMethod': paymentMethod,
+      'itemsSummary': itemsSummary,
     };
   }
 }
