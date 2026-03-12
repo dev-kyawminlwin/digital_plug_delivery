@@ -7,6 +7,8 @@ import '../auth/login_screen.dart';
 import 'customer_profile_screen.dart';
 import 'customer_order_history_tab.dart';
 import 'customer_wishlist_tab.dart';
+import '../admin/admin_dashboard.dart';
+import '../rider/rider_home.dart';
 
 class MarketplaceHome extends StatefulWidget {
   const MarketplaceHome({super.key});
@@ -407,9 +409,76 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
               right: 24,
               child: _buildFloatingNavBar(),
             ),
+            // Role-aware Back-to-Panel FAB for admin / rider
+            _buildRoleFab(bottomPad),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildRoleFab(double bottomPad) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const SizedBox.shrink();
+    return FutureBuilder<DocumentSnapshot>(
+      future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
+      builder: (context, snap) {
+        if (!snap.hasData || !snap.data!.exists) return const SizedBox.shrink();
+        final role = (snap.data!.data() as Map<String, dynamic>?)?['role'] as String?;
+        if (role != 'admin' && role != 'rider') return const SizedBox.shrink();
+        return Positioned(
+          bottom: bottomPad + 96,
+          right: 20,
+          child: GestureDetector(
+            onTap: () {
+              if (role == 'admin') {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AdminDashboard()),
+                );
+              } else {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RiderHome()),
+                );
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: role == 'admin' ? const Color(0xFF1E3A8A) : const Color(0xFF059669),
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: (role == 'admin' ? const Color(0xFF1E3A8A) : const Color(0xFF059669)).withOpacity(0.4),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    role == 'admin' ? Icons.storefront_rounded : Icons.motorcycle_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    "Back to Panel",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

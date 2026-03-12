@@ -3,9 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/order_model.dart';
 import '../../services/order_service.dart';
-import '../../services/location_service.dart'; // Phase 9: Live Map Tracker
+import '../../services/location_service.dart';
 import 'rider_fleet_map_screen.dart';
-import '../shared/chat_screen.dart'; // Phase 16: Live Chat
+import '../shared/chat_screen.dart';
 
 class RiderHome extends StatefulWidget {
   const RiderHome({super.key});
@@ -14,161 +14,336 @@ class RiderHome extends StatefulWidget {
   State<RiderHome> createState() => _RiderHomeState();
 }
 
-class _RiderHomeState extends State<RiderHome> {
+class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMixin {
   final OrderService _orderService = OrderService();
   LocationService? _locationService;
   late String uid;
+  late TabController _tabController;
+  int _tabIndex = 0;
+
+  // Dark Green Rider Theme
+  static const Color _kBg = Color(0xFF0F172A);      // Near-black background
+  static const Color _kGreen = Color(0xFF10B981);    // Emerald green
+  static const Color _kGreenDark = Color(0xFF059669);
+  static const Color _kCard = Color(0xFF1E293B);
 
   @override
   void initState() {
     super.initState();
     uid = FirebaseAuth.instance.currentUser?.uid ?? "";
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() => setState(() => _tabIndex = _tabController.index));
     if (uid.isNotEmpty) {
       _locationService = LocationService(uid: uid);
-      _locationService!.startTracking().catchError((e) {
-        print("Location tracking error: $e");
-      });
+      _locationService!.startTracking().catchError((e) {});
     }
   }
 
   @override
   void dispose() {
     _locationService?.stopTracking();
+    _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _logout() async {
+    _locationService?.stopTracking();
+    await FirebaseAuth.instance.signOut();
+    // AuthGate handles redirect
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
       builder: (context, riderSnapshot) {
-        if (!riderSnapshot.hasData) return const Center(child: CircularProgressIndicator());
-        
+        if (!riderSnapshot.hasData) return const Scaffold(backgroundColor: _kBg, body: Center(child: CircularProgressIndicator(color: _kGreen)));
+
         final data = riderSnapshot.data?.data() as Map<String, dynamic>? ?? {};
         final businessId = data['businessId'];
         final walletBalance = (data['walletBalance'] as num?)?.toDouble() ?? 0.0;
         final collectedCash = (data['collectedCash'] as num?)?.toDouble() ?? 0.0;
+        final riderName = data['name'] as String? ?? 'Rider';
+        final isAvailable = data['isAvailable'] as bool? ?? false;
 
-        if (businessId == null) return const Center(child: Text("Error: No business assigned to this rider."));
-
-        return DefaultTabController(
-          length: 3,
-          child: Scaffold(
-              appBar: AppBar(
-                title: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance.collection('orders').where('status', isNotEqualTo: 'completed').snapshots(),
-                  builder: (context, snapshot) {
-                    int count = snapshot.hasData ? snapshot.data!.docs.length : 0;
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text("Rider Panel"),
-                        const SizedBox(width: 8),
-                        if (count > 0)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(12)),
-                            child: Text("$count Live", style: const TextStyle(fontSize: 12, color: Colors.white)),
-                          )
-                      ],
-                    );
-                  }
-                ),
-                bottom: const TabBar(
-                  tabs: [
-                    Tab(icon: Icon(Icons.list_alt), text: "My Deliveries"),
-                    Tab(icon: Icon(Icons.radar), text: "Order Radar"),
-                    Tab(icon: Icon(Icons.map), text: "Fleet Map"),
-                  ],
-                ),
-                actions: [
-                  Row(
-                    children: [
-                      const Text("Status:", style: TextStyle(fontSize: 12)),
-                      Switch(
-                        value: data['isAvailable'] ?? false,
-                        activeColor: Colors.greenAccent,
-                        activeTrackColor: Colors.green,
-                        onChanged: (val) async {
-                          await FirebaseFirestore.instance.collection('users').doc(uid).update({'isAvailable': val});
-                        },
-                      ),
-                    ],
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.logout),
-                    onPressed: () async {
-                      _locationService?.stopTracking(); // Stop GPS on logout
-                      await FirebaseAuth.instance.signOut();
-                      if (context.mounted) {
-                        Navigator.pushReplacementNamed(context, '/login');
-                      }
-                    },
-                  ),
-                ],
-              ),
-              body: TabBarView(
-                physics: const NeverScrollableScrollPhysics(), // Prevent swipe interference with Google Maps
-                children: [
-                  // Tab 1: My active deliveries and Wallet
-                  _buildMyDeliveriesTab(uid, businessId, data, _orderService, walletBalance, collectedCash),
-                  
-                  // Tab 2: Available broadcasted orders
-                  _buildOrderRadarTab(uid, data['name'] ?? 'Rider', businessId, _orderService),
-
-                  // Tab 3: Live 3D Fleet Map
-                  const RiderFleetMapScreen(),
-                ],
-              ),
+        if (businessId == null) {
+          return Scaffold(
+            backgroundColor: _kBg,
+            body: Center(
+              child: Text("No business assigned. Contact your admin.",
+                  style: const TextStyle(color: Colors.white60, fontSize: 15)),
             ),
           );
         }
-      );
+
+        return Scaffold(
+          backgroundColor: const Color(0xFFF9FAFB),
+          body: Column(
+            children: [
+              // ── Dark Header ──────────────────────────────────────────
+              Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: SafeArea(
+                  bottom: false,
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Row(
+                                  children: [
+                                    Icon(Icons.motorcycle_rounded, color: _kGreen, size: 18),
+                                    SizedBox(width: 6),
+                                    Text("RIDER PANEL",
+                                        style: TextStyle(color: _kGreen, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1.2)),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(riderName,
+                                    style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                // Online/Offline toggle pill
+                                GestureDetector(
+                                  onTap: () async {
+                                    await FirebaseFirestore.instance
+                                        .collection('users')
+                                        .doc(uid)
+                                        .update({'isAvailable': !isAvailable});
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 250),
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                    decoration: BoxDecoration(
+                                      color: isAvailable
+                                          ? _kGreen.withOpacity(0.2)
+                                          : Colors.white.withOpacity(0.08),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: isAvailable ? _kGreen : Colors.white24,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 8, height: 8,
+                                          decoration: BoxDecoration(
+                                            color: isAvailable ? _kGreen : Colors.white38,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          isAvailable ? "Online" : "Offline",
+                                          style: TextStyle(
+                                            color: isAvailable ? _kGreen : Colors.white60,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                // Logout
+                                GestureDetector(
+                                  onTap: _logout,
+                                  child: Container(
+                                    width: 38,
+                                    height: 38,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.08),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.logout_rounded, color: Colors.white60, size: 18),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Wallet Quick View
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          children: [
+                            _walletChip("💰 Wallet", "MMK ${walletBalance.toStringAsFixed(0)}", _kGreen),
+                            const SizedBox(width: 12),
+                            _walletChip("💵 Cash to Drop", "MMK ${collectedCash.toStringAsFixed(0)}", Colors.redAccent),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Tab Bar
+                      TabBar(
+                        controller: _tabController,
+                        indicatorColor: _kGreen,
+                        indicatorWeight: 3,
+                        labelColor: _kGreen,
+                        unselectedLabelColor: Colors.white38,
+                        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        tabs: const [
+                          Tab(icon: Icon(Icons.delivery_dining_rounded, size: 20), text: "My Orders"),
+                          Tab(icon: Icon(Icons.radar_rounded, size: 20), text: "Radar"),
+                          Tab(icon: Icon(Icons.map_rounded, size: 20), text: "Fleet Map"),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // ── Body ─────────────────────────────────────────────────
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: [
+                    _buildMyDeliveriesTab(businessId, data, walletBalance, collectedCash),
+                    _buildOrderRadarTab(riderName, businessId),
+                    const RiderFleetMapScreen(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
-  Widget _buildOrderRadarTab(String uid, String riderName, String businessId, OrderService service) {
+  Widget _walletChip(String label, String value, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(color: Colors.white54, fontSize: 10)),
+            const SizedBox(height: 2),
+            Text(value,
+                style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 14)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOrderRadarTab(String riderName, String businessId) {
     return StreamBuilder<List<OrderModel>>(
-      stream: service.getAvailableOrders(businessId),
+      stream: _orderService.getAvailableOrders(businessId),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
         final availableOrders = snapshot.data!;
 
         if (availableOrders.isEmpty) {
-          return const Center(child: Text("No new requests right now. Relax! 🛋️"));
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.radar_rounded, size: 80, color: Colors.grey.shade300),
+                const SizedBox(height: 16),
+                const Text("All quiet! No new orders right now. 🛋️",
+                    style: TextStyle(color: Colors.grey, fontSize: 15)),
+              ],
+            ),
+          );
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           itemCount: availableOrders.length,
           itemBuilder: (context, index) {
             final order = availableOrders[index];
-            return Card(
-              elevation: 4,
-              color: const Color(0xFFEAB308).withOpacity(0.1),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: _kGreen.withOpacity(0.4)),
+                boxShadow: [
+                  BoxShadow(color: _kGreen.withOpacity(0.1), blurRadius: 16, offset: const Offset(0, 4))
+                ],
+              ),
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("New Order: ${order.customerName}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFFEAB308))),
-                    Text("📍 ${order.address}", style: const TextStyle(color: Colors.black87)),
-                    Text("💰 MMK ${order.totalPrice.toStringAsFixed(0)} (${order.paymentMethod})", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
-                    const SizedBox(height: 8),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                      onPressed: () async {
-                        bool success = await service.acceptOrder(order.id, uid, riderName);
-                        if (context.mounted) {
-                          if (success) {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order Accepted! Go to My Deliveries to start.')));
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Oh snap! Another rider claimed this first.')));
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _kGreen.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text("NEW ORDER",
+                              style: TextStyle(color: _kGreen, fontWeight: FontWeight.bold, fontSize: 10)),
+                        ),
+                        const Spacer(),
+                        Text("MMK ${order.totalPrice.toStringAsFixed(0)}",
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green, fontSize: 16)),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(order.customerName,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 4),
+                    Text("📍 ${order.address}", style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                    Text("💳 ${order.paymentMethod}", style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 46,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          bool success = await _orderService.acceptOrder(order.id, uid, riderName);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(success
+                                    ? "✅ Order accepted! Check My Orders."
+                                    : "⚡ Too slow! Another rider claimed it."),
+                                backgroundColor: success ? Colors.green : Colors.orange,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                margin: const EdgeInsets.all(16),
+                              ),
+                            );
                           }
-                        }
-                      },
-                      child: const Text("FASTEST FINGER: ACCEPT ORDER", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    )
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _kGreen,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        child: const Text("⚡ ACCEPT ORDER",
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -179,9 +354,9 @@ class _RiderHomeState extends State<RiderHome> {
     );
   }
 
-  Widget _buildMyDeliveriesTab(String uid, String businessId, Map<String, dynamic> data, OrderService service, double walletBalance, double collectedCash) {
+  Widget _buildMyDeliveriesTab(String businessId, Map<String, dynamic> data, double walletBalance, double collectedCash) {
     return StreamBuilder<List<OrderModel>>(
-      stream: service.getRiderOrders(uid, businessId),
+      stream: _orderService.getRiderOrders(uid, businessId),
       builder: (context, snapshot) {
         if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
@@ -189,171 +364,133 @@ class _RiderHomeState extends State<RiderHome> {
         final orders = snapshot.data!;
 
         return ListView(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           children: [
-            // Step 4: Wallet Balance Header
-            Card(
-              elevation: 4,
-              color: Theme.of(context).primaryColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-              margin: const EdgeInsets.only(bottom: 16),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Left Side: What the Rider Earned
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text("Wallet Balance", style: TextStyle(color: Colors.white70, fontSize: 14)),
-                        const SizedBox(height: 4),
-                        Text(
-                          "MMK ${walletBalance.toStringAsFixed(0)}",
-                          style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    
-                    // Right Side: Physical Cash the Rider holds
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.redAccent.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          const Text("Cash to Drop", style: TextStyle(color: Colors.white70, fontSize: 12)),
-                          const SizedBox(height: 4),
-                          Text(
-                            "MMK ${collectedCash.toStringAsFixed(0)}",
-                            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    )
-                  ],
-                ),
-              ),
-            ),
-
-            // Phase 8: Payout / Settlement Request
+            // Settle Balances button
             if (collectedCash > 0 || walletBalance > 0)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
                 child: ElevatedButton.icon(
+                  icon: const Icon(Icons.payments_rounded),
+                  label: const Text("Settle Balances with Shop"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    backgroundColor: _kGreenDark,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
                   ),
-                  icon: const Icon(Icons.payments, color: Colors.white),
-                  label: const Text("Settle Balances with Shop", style: TextStyle(color: Colors.white, fontSize: 16)),
                   onPressed: () async {
-                    // Simple Direct Settlement for MVP
                     await FirebaseFirestore.instance.collection('users').doc(uid).update({
                       'walletBalance': 0,
                       'collectedCash': 0,
                     });
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text("Balances settled ✓"),
+                          backgroundColor: _kGreen,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          margin: const EdgeInsets.all(16),
+                        ),
+                      );
+                    }
                   },
                 ),
               ),
 
-            const Text("Active Deliveries", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            
+            const Text("Active Deliveries",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _kBg)),
+            const SizedBox(height: 12),
+
             if (orders.isEmpty)
-              const Center(child: Padding(
-                padding: EdgeInsets.all(20.0),
-                child: Text("No active deliveries. Check the Radar!"),
-              )),
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  child: Column(
+                    children: [
+                      Icon(Icons.inbox_rounded, size: 72, color: Colors.grey.shade300),
+                      const SizedBox(height: 12),
+                      Text("No active deliveries. Check the Radar! 📡",
+                          style: TextStyle(color: Colors.grey.shade500, fontSize: 15)),
+                    ],
+                  ),
+                ),
+              ),
 
             ...orders.map((order) {
               final statusColor = OrderModel.getStatusColor(order.status);
-
-              return Card(
-                elevation: 3,
-                margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+              return Container(
+                margin: const EdgeInsets.only(bottom: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 4))],
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.07),
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                      ),
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Expanded(child: Text(order.customerName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                "MMK ${order.totalPrice.toStringAsFixed(0)}",
-                                style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
-                              ),
-                              // Phase 8: Show payment method
-                              Text(
-                                order.paymentMethod.toUpperCase(),
-                                style: TextStyle(
-                                  color: order.paymentMethod == 'Cash' ? Colors.red : Colors.blue,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              )
-                            ]
-                          )
+                          Text(order.customerName,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: statusColor.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(order.status.toUpperCase().replaceAll('_', ' '),
+                                style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 10)),
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text("📍 ${order.address}"),
-                      Text("📞 ${order.phone}"),
-                      const Divider(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: statusColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              order.status.toUpperCase(),
-                              style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12),
-                            ),
+                          Text("📍 ${order.address}", style: TextStyle(color: Colors.grey.shade700, fontSize: 13)),
+                          const SizedBox(height: 4),
+                          Text("📞 ${order.phone}",
+                              style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600, fontSize: 13)),
+                          Text(
+                            "💰 MMK ${order.totalPrice.toStringAsFixed(0)} • ${order.paymentMethod}",
+                            style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
                           ),
+                          const SizedBox(height: 12),
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              Container(
-                                margin: const EdgeInsets.only(right: 8),
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF3B82F6), // Blue for Chat
-                                  shape: BoxShape.circle,
+                              IconButton(
+                                iconSize: 20,
+                                icon: const Icon(Icons.chat_rounded, color: Colors.blue),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.blue.withOpacity(0.1),
+                                  shape: const CircleBorder(),
                                 ),
-                                child: IconButton(
-                                  icon: const Icon(Icons.chat, color: Colors.white, size: 20),
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => ChatScreen(
-                                          orderId: order.id,
-                                          otherPartyName: order.customerName,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
+                                onPressed: () {
+                                  Navigator.push(context, MaterialPageRoute(
+                                    builder: (_) => ChatScreen(orderId: order.id, otherPartyName: order.customerName),
+                                  ));
+                                },
                               ),
-                              _buildActionButton(order, service),
+                              const SizedBox(width: 8),
+                              _buildActionButton(order),
                             ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               );
             }).toList(),
@@ -363,26 +500,32 @@ class _RiderHomeState extends State<RiderHome> {
     );
   }
 
-  Widget _buildActionButton(OrderModel order, OrderService service) {
-    if (order.status == 'assigned') {
-      return ElevatedButton(
-        onPressed: () => service.updateStatus(order, 'picked_up'),
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-        child: const Text("PICK UP", style: TextStyle(color: Colors.white)),
-      );
-    } else if (order.status == 'picked_up') {
-      return ElevatedButton(
-        onPressed: () => service.updateStatus(order, 'arrived'),
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
-        child: const Text("ARRIVED", style: TextStyle(color: Colors.white)),
-      );
-    } else if (order.status == 'arrived') {
-      return ElevatedButton(
-        onPressed: () => service.updateStatus(order, 'completed'),
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-        child: const Text("COMPLETE DELIVERY", style: TextStyle(color: Colors.white)),
-      );
-    }
-    return const SizedBox.shrink();
+  Widget _buildActionButton(OrderModel order) {
+    final stages = {
+      'assigned': ('PICK UP', Colors.blue),
+      'picked_up': ('I\'VE ARRIVED', Colors.deepPurple),
+      'arrived': ('COMPLETE ✓', _kGreen),
+    };
+    final stage = stages[order.status];
+    if (stage == null) return const SizedBox.shrink();
+
+    return ElevatedButton(
+      onPressed: () {
+        final nextStatus = {
+          'assigned': 'picked_up',
+          'picked_up': 'arrived',
+          'arrived': 'completed',
+        }[order.status]!;
+        _orderService.updateStatus(order, nextStatus);
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: stage.$2,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 0,
+      ),
+      child: Text(stage.$1, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+    );
   }
-} // End RiderHome
+}

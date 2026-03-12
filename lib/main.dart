@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'screens/auth/login_screen.dart';
-import 'screens/customer/marketplace_home.dart'; // Phase 9
+import 'screens/customer/marketplace_home.dart';
 import 'screens/auth/subscription_expired_screen.dart';
 import 'screens/super_admin/super_admin_dashboard.dart';
-import 'screens/customer/track_order_screen.dart'; // Phase 8
+import 'screens/admin/admin_dashboard.dart';
+import 'screens/rider/rider_home.dart';
+import 'screens/customer/track_order_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,12 +21,11 @@ void main() async {
       projectId: 'digital-plug',
     ),
   );
-  
-  // Wipe corrupt IndexedDB cache for Web SDK
+
   try {
     await FirebaseFirestore.instance.clearPersistence();
   } catch (e) {
-    print("Persistence clear error (expected on some platforms): $e");
+    // Expected on some platforms
   }
 
   runApp(const DigitalPlugApp());
@@ -39,15 +41,15 @@ class DigitalPlugApp extends StatelessWidget {
       title: 'Digital Plug Delivery',
       theme: ThemeData(
         useMaterial3: true,
-        primaryColor: const Color(0xFF1E3A8A), // Royal Blue from logo
+        primaryColor: const Color(0xFF1E3A8A),
         scaffoldBackgroundColor: Colors.white,
         textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF1E3A8A),
           primary: const Color(0xFF1E3A8A),
-          secondary: const Color(0xFFEAB308), // Gold/Yellow from logo
+          secondary: const Color(0xFFEAB308),
           surface: Colors.white,
-          onSurface: const Color(0xFF1F2937), // Dark Gray/Black for text
+          onSurface: const Color(0xFF1F2937),
         ),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
@@ -57,7 +59,7 @@ class DigitalPlugApp extends StatelessWidget {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF1F2937), // Sleek Dark Buttons like the reference
+            backgroundColor: const Color(0xFF1F2937),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
@@ -65,18 +67,16 @@ class DigitalPlugApp extends StatelessWidget {
           ),
         ),
       ),
-      // Phase 9: Start customers on the public marketplace
-      initialRoute: '/',
+      // AuthGate is the root — handles all routing based on auth state + role
+      home: const AuthGate(),
       routes: {
-        '/': (context) => const MarketplaceHome(),
         '/login': (context) => const LoginScreen(),
         '/subscription_expired': (context) => const SubscriptionExpiredScreen(),
         '/super_admin': (context) => const SuperAdminDashboard(),
-        // Add your other screens here so the navigator can find them
-        // '/admin': (context) => const AdminDashboard(),
-        // '/rider': (context) => const RiderHome(),
+        '/admin': (context) => const AdminDashboard(),
+        '/rider': (context) => const RiderHome(),
+        '/': (context) => const MarketplaceHome(),
       },
-      // Phase 8: Intercept dynamic URL for tracking
       onGenerateRoute: (settings) {
         if (settings.name != null && settings.name!.startsWith('/track/')) {
           final orderId = settings.name!.split('/track/').last;
@@ -85,6 +85,89 @@ class DigitalPlugApp extends StatelessWidget {
           );
         }
         return null;
+      },
+    );
+  }
+}
+
+/// AuthGate listens to Firebase auth changes and routes users to
+/// the correct screen based on their role. This is the root of the app.
+/// Signing out automatically re-triggers this and shows MarketplaceHome.
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, authSnapshot) {
+        // Still loading auth state
+        if (authSnapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        // Not logged in — show public marketplace
+        final user = authSnapshot.data;
+        if (user == null) {
+          return const MarketplaceHome();
+        }
+
+        // Logged in — look up role in Firestore
+        return FutureBuilder<DocumentSnapshot>(
+          future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
+          builder: (context, userSnapshot) {
+            if (!userSnapshot.hasData) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            if (!userSnapshot.data!.exists) {
+              // User exists in Auth but not Firestore → treat as customer
+              return const MarketplaceHome();
+            }
+
+            final data = userSnapshot.data!.data() as Map<String, dynamic>;
+            final role = data['role'] as String?;
+
+            switch (role) {
+              case 'super_admin':
+                return const SuperAdminDashboard();
+
+              case 'admin':
+                // Check subscription
+                final businessId = data['businessId'];
+                if (businessId == null) return const MarketplaceHome();
+                return FutureBuilder<DocumentSnapshot>(
+                  future: FirebaseFirestore.instance
+                      .collection('businesses')
+                      .doc(businessId)
+                      .get(),
+                  builder: (context, bizSnapshot) {
+                    if (!bizSnapshot.hasData) {
+                      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+                    }
+                    final bizData = bizSnapshot.data!.data() as Map<String, dynamic>?;
+                    final status = bizData?['subscriptionStatus'] ?? 'inactive';
+                    final subEnd = (bizData?['subscriptionEnd'] as Timestamp?)?.toDate();
+                    final isActive = status == 'active' &&
+                        (subEnd == null || subEnd.isAfter(DateTime.now()));
+                    if (!isActive) return const SubscriptionExpiredScreen();
+                    return const AdminDashboard();
+                  },
+                );
+
+              case 'rider':
+                return const RiderHome();
+
+              case 'customer':
+              default:
+                return const MarketplaceHome();
+            }
+          },
+        );
       },
     );
   }
