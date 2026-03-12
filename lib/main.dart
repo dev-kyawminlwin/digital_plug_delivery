@@ -22,12 +22,6 @@ void main() async {
     ),
   );
 
-  try {
-    await FirebaseFirestore.instance.clearPersistence();
-  } catch (e) {
-    // Expected on some platforms
-  }
-
   runApp(const DigitalPlugApp());
 }
 
@@ -75,7 +69,7 @@ class DigitalPlugApp extends StatelessWidget {
         '/super_admin': (context) => const SuperAdminDashboard(),
         '/admin': (context) => const AdminDashboard(),
         '/rider': (context) => const RiderHome(),
-        '/': (context) => const MarketplaceHome(),
+        // '/' is handled by home: AuthGate() — cannot duplicate it here
       },
       onGenerateRoute: (settings) {
         if (settings.name != null && settings.name!.startsWith('/track/')) {

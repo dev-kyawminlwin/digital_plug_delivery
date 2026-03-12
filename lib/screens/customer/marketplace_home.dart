@@ -420,65 +420,53 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
   Widget _buildRoleFab(double bottomPad) {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return const SizedBox.shrink();
-    return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
-      builder: (context, snap) {
-        if (!snap.hasData || !snap.data!.exists) return const SizedBox.shrink();
-        final role = (snap.data!.data() as Map<String, dynamic>?)?['role'] as String?;
-        if (role != 'admin' && role != 'rider') return const SizedBox.shrink();
-        return Positioned(
-          bottom: bottomPad + 96,
-          right: 20,
-          child: GestureDetector(
+
+    // Positioned must be a direct Stack child — FutureBuilder is nested inside it
+    return Positioned(
+      bottom: bottomPad + 96,
+      right: 20,
+      child: FutureBuilder<DocumentSnapshot>(
+        future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
+        builder: (context, snap) {
+          if (!snap.hasData || !snap.data!.exists) return const SizedBox.shrink();
+          final role = (snap.data!.data() as Map<String, dynamic>?)?['role'] as String?;
+          if (role != 'admin' && role != 'rider') return const SizedBox.shrink();
+
+          final isAdmin = role == 'admin';
+          final color = isAdmin ? const Color(0xFF1E3A8A) : const Color(0xFF059669);
+
+          return GestureDetector(
             onTap: () {
-              if (role == 'admin') {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AdminDashboard()),
-                );
-              } else {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const RiderHome()),
-                );
-              }
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => isAdmin ? const AdminDashboard() : const RiderHome(),
+                ),
+              );
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: role == 'admin' ? const Color(0xFF1E3A8A) : const Color(0xFF059669),
+                color: color,
                 borderRadius: BorderRadius.circular(28),
                 boxShadow: [
-                  BoxShadow(
-                    color: (role == 'admin' ? const Color(0xFF1E3A8A) : const Color(0xFF059669)).withOpacity(0.4),
-                    blurRadius: 14,
-                    offset: const Offset(0, 4),
-                  ),
+                  BoxShadow(color: color.withOpacity(0.4), blurRadius: 14, offset: const Offset(0, 4)),
                 ],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    role == 'admin' ? Icons.storefront_rounded : Icons.motorcycle_rounded,
-                    color: Colors.white,
-                    size: 18,
-                  ),
+                  Icon(isAdmin ? Icons.storefront_rounded : Icons.motorcycle_rounded,
+                      color: Colors.white, size: 18),
                   const SizedBox(width: 8),
-                  const Text(
-                    "Back to Panel",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
+                  const Text("Back to Panel",
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                 ],
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
