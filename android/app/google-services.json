@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "673069079625",
+    "project_id": "digital-plug",
+    "storage_bucket": "digital-plug.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:673069079625:android:b7a4b01936aa5f107ef398",
+        "android_client_info": {
+          "package_name": "com.digitalplug.delivery"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAE0OwKyLnxr5VAs45eOOB5HafzqfUbKq4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
