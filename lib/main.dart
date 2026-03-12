@@ -21,7 +21,6 @@ void main() async {
       projectId: 'digital-plug',
     ),
   );
-
   runApp(const DigitalPlugApp());
 }
 
@@ -61,7 +60,6 @@ class DigitalPlugApp extends StatelessWidget {
           ),
         ),
       ),
-      // AuthGate is the root — handles all routing based on auth state + role
       home: const AuthGate(),
       routes: {
         '/login': (context) => const LoginScreen(),
@@ -69,7 +67,7 @@ class DigitalPlugApp extends StatelessWidget {
         '/super_admin': (context) => const SuperAdminDashboard(),
         '/admin': (context) => const AdminDashboard(),
         '/rider': (context) => const RiderHome(),
-        // '/' is handled by home: AuthGate() — cannot duplicate it here
+        // NOTE: '/' must NOT be in routes when home: is set
       },
       onGenerateRoute: (settings) {
         if (settings.name != null && settings.name!.startsWith('/track/')) {
@@ -84,9 +82,8 @@ class DigitalPlugApp extends StatelessWidget {
   }
 }
 
-/// AuthGate listens to Firebase auth changes and routes users to
-/// the correct screen based on their role. This is the root of the app.
-/// Signing out automatically re-triggers this and shows MarketplaceHome.
+/// AuthGate uses StreamBuilders only (no FutureBuilders that can hang on web).
+/// During any loading state, MarketplaceHome is shown — never a blank white screen.
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -95,31 +92,27 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, authSnapshot) {
-        // Still loading auth state
+        // While auth stream resolves → show marketplace (public, safe default)
         if (authSnapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const MarketplaceHome();
         }
 
-        // Not logged in — show public marketplace
         final user = authSnapshot.data;
+
+        // Not logged in → public marketplace
         if (user == null) {
           return const MarketplaceHome();
         }
 
-        // Logged in — look up role in Firestore
-        return FutureBuilder<DocumentSnapshot>(
-          future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
+        // Logged in → stream the user doc for role (StreamBuilder reconnects on web)
+        return StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .snapshots(),
           builder: (context, userSnapshot) {
-            if (!userSnapshot.hasData) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
-            }
-
-            if (!userSnapshot.data!.exists) {
-              // User exists in Auth but not Firestore → treat as customer
+            // While user doc loads → show marketplace (not blank)
+            if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
               return const MarketplaceHome();
             }
 
@@ -131,25 +124,25 @@ class AuthGate extends StatelessWidget {
                 return const SuperAdminDashboard();
 
               case 'admin':
-                // Check subscription
-                final businessId = data['businessId'];
+                final businessId = data['businessId'] as String?;
                 if (businessId == null) return const MarketplaceHome();
-                return FutureBuilder<DocumentSnapshot>(
-                  future: FirebaseFirestore.instance
+                // Stream the business doc to check subscription
+                return StreamBuilder<DocumentSnapshot>(
+                  stream: FirebaseFirestore.instance
                       .collection('businesses')
                       .doc(businessId)
-                      .get(),
+                      .snapshots(),
                   builder: (context, bizSnapshot) {
-                    if (!bizSnapshot.hasData) {
-                      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-                    }
+                    // Show admin panel while loading biz doc (avoids flicker)
+                    if (!bizSnapshot.hasData) return const AdminDashboard();
                     final bizData = bizSnapshot.data!.data() as Map<String, dynamic>?;
                     final status = bizData?['subscriptionStatus'] ?? 'inactive';
                     final subEnd = (bizData?['subscriptionEnd'] as Timestamp?)?.toDate();
                     final isActive = status == 'active' &&
                         (subEnd == null || subEnd.isAfter(DateTime.now()));
-                    if (!isActive) return const SubscriptionExpiredScreen();
-                    return const AdminDashboard();
+                    return isActive
+                        ? const AdminDashboard()
+                        : const SubscriptionExpiredScreen();
                   },
                 );
 
