@@ -78,7 +78,7 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                                       width: 40,
                                       height: 40,
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withValues(alpha: 0.2),
+                                        color: Colors.white.withOpacity(0.2),
                                         shape: BoxShape.circle,
                                       ),
                                       child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
@@ -87,14 +87,16 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                                   GestureDetector(
                                     onTap: () async {
                                       await _auth.signOut();
-                                      if (mounted) Navigator.pop(context);
+                                      if (mounted) {
+                                        Navigator.of(context).popUntil((route) => route.isFirst);
+                                      }
                                     },
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                       decoration: BoxDecoration(
-                                        color: Colors.red.withValues(alpha: 0.2),
+                                        color: Colors.red.withOpacity(0.2),
                                         borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
+                                        border: Border.all(color: Colors.red.withOpacity(0.4)),
                                       ),
                                       child: const Row(
                                         mainAxisSize: MainAxisSize.min,

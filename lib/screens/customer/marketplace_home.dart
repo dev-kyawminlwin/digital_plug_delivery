@@ -89,30 +89,69 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
                     ),
                     StreamBuilder<User?>(
                       stream: FirebaseAuth.instance.authStateChanges(),
-                      builder: (context, snapshot) {
-                        bool isLoggedIn = snapshot.hasData;
-                        return GestureDetector(
-                          onTap: _handleProfileTap,
-                          child: Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isLoggedIn
-                                  ? const Color(0xFF10B981).withValues(alpha: 0.12)
-                                  : const Color(0xFFFFF7ED),
-                              border: Border.all(
-                                color: isLoggedIn
-                                    ? const Color(0xFF10B981).withValues(alpha: 0.4)
-                                    : const Color(0xFFEA580C).withValues(alpha: 0.3),
+                      builder: (context, authSnapshot) {
+                        bool isLoggedIn = authSnapshot.hasData;
+
+                        if (!isLoggedIn) {
+                          return GestureDetector(
+                            onTap: _handleProfileTap,
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: const Color(0xFFFFF7ED),
+                                border: Border.all(
+                                  color: const Color(0xFFEA580C).withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.login_rounded,
+                                color: Color(0xFFEA580C),
+                                size: 22,
                               ),
                             ),
-                            child: Icon(
-                              isLoggedIn ? Icons.person_rounded : Icons.login_rounded,
-                              color: isLoggedIn ? const Color(0xFF10B981) : const Color(0xFFEA580C),
-                              size: 22,
-                            ),
-                          ),
+                          );
+                        }
+
+                        return StreamBuilder<DocumentSnapshot>(
+                          stream: FirebaseFirestore.instance.collection('users').doc(authSnapshot.data!.uid).snapshots(),
+                          builder: (context, userSnapshot) {
+                            String avatar = '';
+                            if (userSnapshot.hasData && userSnapshot.data != null && userSnapshot.data!.exists) {
+                              final data = userSnapshot.data!.data() as Map<String, dynamic>?;
+                              if (data != null && data.containsKey('avatar')) {
+                                avatar = data['avatar'] ?? '';
+                              }
+                            }
+                            return GestureDetector(
+                              onTap: _handleProfileTap,
+                              child: Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                                  border: Border.all(
+                                    color: const Color(0xFF10B981).withValues(alpha: 0.4),
+                                  ),
+                                  image: avatar.isNotEmpty
+                                      ? DecorationImage(
+                                          image: AssetImage('assets/images/$avatar.png'),
+                                          fit: BoxFit.cover,
+                                        )
+                                      : null,
+                                ),
+                                child: avatar.isEmpty
+                                    ? const Icon(
+                                        Icons.person_rounded,
+                                        color: Color(0xFF10B981),
+                                        size: 22,
+                                      )
+                                    : null,
+                              ),
+                            );
+                          },
                         );
                       },
                     ),
