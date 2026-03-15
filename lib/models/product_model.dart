@@ -44,7 +44,7 @@ class ProductModel {
           ? List<Map<String, dynamic>>.from(map['optionGroups'].map((x) => Map<String, dynamic>.from(x)))
           : [],
       isAvailable: map['isAvailable'] ?? true,
-      createdAt: map['createdAt'] != null ? (map['createdAt'] as Timestamp).toDate() : DateTime.now(),
+      createdAt: map['createdAt'] != null ? (map['createdAt'] is Timestamp ? (map['createdAt'] as Timestamp).toDate() : DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now()) : DateTime.now(),
     );
   }
 

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/product_model.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/image_helper.dart';
 
 class MenuManagerTab extends StatefulWidget {
@@ -251,7 +250,7 @@ class _MenuManagerTabState extends State<MenuManagerTab> {
                     children: [
                       Switch(
                         value: product.isAvailable,
-                        activeColor: Colors.green,
+                        activeTrackColor: Colors.green,
                         onChanged: (val) {
                           FirebaseFirestore.instance.collection('products').doc(doc.id).update({
                             'isAvailable': val,

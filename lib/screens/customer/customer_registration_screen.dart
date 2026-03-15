@@ -115,7 +115,7 @@ class _CustomerRegistrationScreenState extends State<CustomerRegistrationScreen>
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
@@ -138,7 +138,7 @@ class _CustomerRegistrationScreenState extends State<CustomerRegistrationScreen>
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(28),
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 20, offset: const Offset(0, 8)),
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 20, offset: const Offset(0, 8)),
                       ],
                     ),
                     child: Column(

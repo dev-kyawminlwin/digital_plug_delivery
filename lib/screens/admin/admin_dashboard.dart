@@ -20,6 +20,33 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   int _currentIndex = 0;
+  
+  late Future<Map<String, dynamic>> _dashboardDataFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _dashboardDataFuture = _loadDashboardData();
+  }
+
+  Future<Map<String, dynamic>> _loadDashboardData() async {
+    final userSnap = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .get();
+    final userData = userSnap.data() as Map<String, dynamic>? ?? {};
+    final businessId = userData['businessId'] as String? ?? '';
+    final adminName = userData['name'] as String? ?? 'Admin';
+
+    final bizSnap = await FirebaseFirestore.instance.collection('businesses').doc(businessId).get();
+    final bizData = bizSnap.exists ? bizSnap.data() as Map<String, dynamic> : <String, dynamic>{};
+
+    return {
+      'businessId': businessId,
+      'adminName': adminName,
+      'bizData': bizData,
+    };
+  }
 
   static const Color _kPrimary = Color(0xFF1E3A8A);
   static const Color _kGold = Color(0xFFEAB308);
@@ -39,26 +66,21 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance
-          .collection('users')
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .get(),
-      builder: (context, userSnap) {
-        if (!userSnap.hasData) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _dashboardDataFuture,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
-        final userData = userSnap.data!.data() as Map<String, dynamic>;
-        final businessId = userData['businessId'] as String? ?? '';
-        final adminName = userData['name'] as String? ?? 'Admin';
+        if (snapshot.hasError) {
+          return Scaffold(body: Center(child: Text("Error: ${snapshot.error}")));
+        }
 
-        return FutureBuilder<DocumentSnapshot>(
-          future: FirebaseFirestore.instance.collection('businesses').doc(businessId).get(),
-          builder: (context, bizSnap) {
-            final bizData = bizSnap.hasData && bizSnap.data!.exists
-                ? bizSnap.data!.data() as Map<String, dynamic>
-                : <String, dynamic>{};
-            final bizName = bizData['name'] as String? ?? 'Your Shop';
+        final data = snapshot.data!;
+        final businessId = data['businessId'] as String;
+        final adminName = data['adminName'] as String;
+        final bizData = data['bizData'] as Map<String, dynamic>;
+        final bizName = bizData['name'] as String? ?? 'Your Shop';
 
             final List<Widget> tabs = [
               _buildOrdersTab(businessId),
@@ -170,7 +192,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                     width: 40,
                                     height: 40,
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.2),
+                                      color: Colors.white.withValues(alpha: 0.2),
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(Icons.person_rounded, color: Colors.white, size: 22),
@@ -191,7 +213,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, -4)),
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, -4)),
                   ],
                 ),
                 child: SafeArea(
@@ -215,24 +237,24 @@ class _AdminDashboardState extends State<AdminDashboard> {
             );
           },
         );
-      },
-    );
   }
 
   Widget _navItem(int index, IconData activeIcon, IconData inactiveIcon, String label) {
     final isSelected = _currentIndex == index;
-    return GestureDetector(
-      onTap: () => setState(() => _currentIndex = index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? _kPrimary.withOpacity(0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => setState(() => _currentIndex = index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          decoration: BoxDecoration(
+            color: isSelected ? _kPrimary.withValues(alpha: 0.1) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
             Icon(
               isSelected ? activeIcon : inactiveIcon,
               color: isSelected ? _kPrimary : Colors.grey.shade400,
@@ -241,6 +263,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
             const SizedBox(height: 2),
             Text(
               label,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -250,7 +274,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   // ─── TAB 0: LIVE ORDERS ───────────────────────────────────────────────
@@ -308,7 +332,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.green.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 6))],
+        boxShadow: [BoxShadow(color: Colors.green.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 6))],
       ),
       child: Column(
         children: [
@@ -351,7 +375,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
+        color: Colors.white.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -371,14 +395,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.07),
+              color: statusColor.withValues(alpha: 0.07),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
             ),
             child: Row(
@@ -389,7 +413,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.12),
+                    color: statusColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -446,7 +470,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.1),
+                          color: Colors.orange.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Text("No Rider Yet",
@@ -474,9 +498,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
             height: 200,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              color: _kPrimary.withOpacity(0.08),
+              color: _kPrimary.withValues(alpha: 0.08),
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 16, offset: const Offset(0, 6))
+                BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 6))
               ],
             ),
             child: Stack(
@@ -528,7 +552,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       decoration: BoxDecoration(
                         color: _kPrimary,
                         borderRadius: BorderRadius.circular(20),
-                        boxShadow: [BoxShadow(color: _kPrimary.withOpacity(0.4), blurRadius: 8)],
+                        boxShadow: [BoxShadow(color: _kPrimary.withValues(alpha: 0.4), blurRadius: 8)],
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
@@ -557,7 +581,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: Colors.green.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Text("● Active",
@@ -568,7 +592,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: Colors.orange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text("Delivery: MMK ${bizData['deliveryFee']}",
@@ -594,7 +618,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 4))],
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 4))],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

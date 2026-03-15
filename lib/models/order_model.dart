@@ -71,10 +71,10 @@ class OrderModel {
       assignedRider: map['assignedRider'] ?? '',
       riderId: map['riderId'] ?? '',
       riderName: map['riderName'] ?? 'Rider',
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      createdAt: map['createdAt'] is Timestamp ? (map['createdAt'] as Timestamp).toDate() : (map['createdAt'] is String ? DateTime.tryParse(map['createdAt']) ?? DateTime.now() : DateTime.now()),
       updatedAt: map['updatedAt'] != null 
-          ? (map['updatedAt'] as Timestamp).toDate()
-          : (map['createdAt'] as Timestamp).toDate(),
+          ? (map['updatedAt'] is Timestamp ? (map['updatedAt'] as Timestamp).toDate() : DateTime.tryParse(map['updatedAt']) ?? DateTime.now())
+          : (map['createdAt'] is Timestamp ? (map['createdAt'] as Timestamp).toDate() : DateTime.tryParse(map['createdAt']) ?? DateTime.now()),
       paymentMethod: map['paymentMethod'] ?? 'Cash',
       itemsSummary: map['itemsSummary'] as String? ?? '',
     );

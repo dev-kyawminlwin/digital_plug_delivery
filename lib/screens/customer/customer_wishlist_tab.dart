@@ -151,7 +151,7 @@ class CustomerWishlistTab extends StatelessWidget {
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
-                                BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 16, offset: const Offset(0, 6)),
+                                BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 16, offset: const Offset(0, 6)),
                               ],
                             ),
                             child: Row(
@@ -227,7 +227,7 @@ class CustomerWishlistTab extends StatelessWidget {
 
   Widget _placeholder() {
     return Container(
-      color: _kPrimary.withOpacity(0.08),
+      color: _kPrimary.withValues(alpha: 0.08),
       child: const Icon(Icons.storefront_rounded, size: 36, color: _kPrimary),
     );
   }

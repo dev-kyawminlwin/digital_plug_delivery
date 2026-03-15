@@ -156,7 +156,7 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
                     top: 20,
                     left: 20,
                     child: CircleAvatar(
-                      backgroundColor: Colors.white.withOpacity(0.2),
+                      backgroundColor: Colors.white.withValues(alpha: 0.2),
                       child: IconButton(
                         icon: const Icon(Icons.arrow_back_ios_new, size: 16, color: Colors.white),
                         onPressed: () => Navigator.pop(context),
@@ -182,11 +182,11 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
                         height: 220,
                         width: 220,
                         decoration: BoxDecoration(
-                          color: Theme.of(context).primaryColor.withOpacity(0.1),
+                          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withValues(alpha: 0.2),
                               blurRadius: 30,
                               offset: const Offset(0, 15),
                             )
@@ -290,7 +290,7 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         boxShadow: [
-                          BoxShadow(color: Colors.white.withOpacity(0.9), blurRadius: 20, offset: const Offset(0, -20))
+                          BoxShadow(color: Colors.white.withValues(alpha: 0.9), blurRadius: 20, offset: const Offset(0, -20))
                         ]
                       ),
                       child: Row(
@@ -378,7 +378,7 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
                             width: 38,
                             height: 38,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.15),
+                              color: Colors.white.withValues(alpha: 0.15),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 16),
@@ -398,7 +398,7 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
                             width: 38,
                             height: 38,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.15),
+                              color: Colors.white.withValues(alpha: 0.15),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -463,7 +463,7 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
                                   width: 80,
                                   height: 80,
                                   decoration: BoxDecoration(
-                                    color: Theme.of(context).primaryColor.withOpacity(0.05),
+                                    color: Theme.of(context).primaryColor.withValues(alpha: 0.05),
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: product.imageUrl.isNotEmpty
@@ -531,7 +531,7 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
                     borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF1F2937).withOpacity(0.3),
+                        color: const Color(0xFF1F2937).withValues(alpha: 0.3),
                         blurRadius: 10,
                         offset: const Offset(0, 5),
                       ),

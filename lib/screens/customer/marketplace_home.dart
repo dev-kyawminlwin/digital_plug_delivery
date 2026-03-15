@@ -99,12 +99,12 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: isLoggedIn
-                                  ? const Color(0xFF10B981).withOpacity(0.12)
+                                  ? const Color(0xFF10B981).withValues(alpha: 0.12)
                                   : const Color(0xFFFFF7ED),
                               border: Border.all(
                                 color: isLoggedIn
-                                    ? const Color(0xFF10B981).withOpacity(0.4)
-                                    : const Color(0xFFEA580C).withOpacity(0.3),
+                                    ? const Color(0xFF10B981).withValues(alpha: 0.4)
+                                    : const Color(0xFFEA580C).withValues(alpha: 0.3),
                               ),
                             ),
                             child: Icon(
@@ -289,7 +289,7 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.07), blurRadius: 16, offset: const Offset(0, 6)),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.07), blurRadius: 16, offset: const Offset(0, 6)),
           ],
         ),
         child: Column(
@@ -319,7 +319,7 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
-                            colors: [Colors.transparent, Colors.black.withOpacity(0.18)],
+                            colors: [Colors.transparent, Colors.black.withValues(alpha: 0.18)],
                           ),
                         ),
                       ),
@@ -334,7 +334,7 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(10),
-                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 6)],
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 6)],
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
@@ -387,7 +387,7 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
 
   Widget _shopPlaceholder() {
     return Container(
-      color: _kPrimary.withOpacity(0.08),
+      color: _kPrimary.withValues(alpha: 0.08),
       child: const Icon(Icons.storefront_rounded, size: 48, color: _kPrimary),
     );
   }
@@ -401,13 +401,14 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
         bottom: false,
         child: Stack(
           children: [
-            Positioned.fill(child: _buildBodyContent()),
+            _buildBodyContent(),
             // Floating Bottom Nav
-            Positioned(
-              bottom: bottomPad + 16,
-              left: 24,
-              right: 24,
-              child: _buildFloatingNavBar(),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: bottomPad + 16, left: 24, right: 24),
+                child: _buildFloatingNavBar(),
+              ),
             ),
             // Role-aware Back-to-Panel FAB for admin / rider
             _buildRoleFab(bottomPad),
@@ -421,11 +422,11 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return const SizedBox.shrink();
 
-    // Positioned must be a direct Stack child — FutureBuilder is nested inside it
-    return Positioned(
-      bottom: bottomPad + 96,
-      right: 20,
-      child: FutureBuilder<DocumentSnapshot>(
+    return Align(
+      alignment: Alignment.bottomRight,
+      child: Padding(
+        padding: EdgeInsets.only(bottom: bottomPad + 96, right: 20),
+        child: FutureBuilder<DocumentSnapshot>(
         future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
         builder: (context, snap) {
           if (!snap.hasData || !snap.data!.exists) return const SizedBox.shrink();
@@ -450,7 +451,7 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
                 color: color,
                 borderRadius: BorderRadius.circular(28),
                 boxShadow: [
-                  BoxShadow(color: color.withOpacity(0.4), blurRadius: 14, offset: const Offset(0, 4)),
+                  BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 14, offset: const Offset(0, 4)),
                 ],
               ),
               child: Row(
@@ -467,7 +468,8 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
           );
         },
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildFloatingNavBar() {
@@ -483,7 +485,7 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
         color: _kDark,
         borderRadius: BorderRadius.circular(36),
         boxShadow: [
-          BoxShadow(color: _kDark.withOpacity(0.35), blurRadius: 16, offset: const Offset(0, 6)),
+          BoxShadow(color: _kDark.withValues(alpha: 0.35), blurRadius: 16, offset: const Offset(0, 6)),
         ],
       ),
       child: Row(
@@ -496,7 +498,7 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: isSelected ? Colors.white.withOpacity(0.15) : Colors.transparent,
+                color: isSelected ? Colors.white.withValues(alpha: 0.15) : Colors.transparent,
                 borderRadius: BorderRadius.circular(24),
               ),
               child: Icon(

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../auth/login_screen.dart';
 
 class CustomerProfileScreen extends StatefulWidget {
   const CustomerProfileScreen({super.key});
@@ -79,7 +78,7 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                                       width: 40,
                                       height: 40,
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
+                                        color: Colors.white.withValues(alpha: 0.2),
                                         shape: BoxShape.circle,
                                       ),
                                       child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
@@ -93,9 +92,9 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                       decoration: BoxDecoration(
-                                        color: Colors.red.withOpacity(0.2),
+                                        color: Colors.red.withValues(alpha: 0.2),
                                         borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(color: Colors.red.withOpacity(0.4)),
+                                        border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
                                       ),
                                       child: const Row(
                                         mainAxisSize: MainAxisSize.min,
@@ -122,7 +121,7 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                               height: 130,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.white.withOpacity(0.05),
+                                color: Colors.white.withValues(alpha: 0.05),
                               ),
                             ),
                           ),
@@ -142,7 +141,7 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                               color: currentAvatar.isEmpty ? Colors.grey.shade200 : null,
                               border: Border.all(color: Colors.white, width: 4),
                               boxShadow: [
-                                BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 16, offset: const Offset(0, 6))
+                                BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 16, offset: const Offset(0, 6))
                               ],
                               image: currentAvatar.isNotEmpty
                                   ? DecorationImage(
@@ -247,10 +246,33 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                         title: "Contact Info",
                         child: Column(
                           children: [
-                            _infoRow(Icons.phone_outlined, "Phone", phone.isEmpty ? 'Not set' : phone),
+                            _editableRow(
+                              context,
+                              icon: Icons.phone_outlined,
+                              label: "Phone",
+                              value: phone.isEmpty ? 'Not set' : phone,
+                              onEdit: () => _editFieldDialog(
+                                context,
+                                label: 'Phone Number',
+                                current: phone,
+                                field: 'phone',
+                                keyboardType: TextInputType.phone,
+                              ),
+                            ),
                             const SizedBox(height: 12),
-                            _infoRow(Icons.location_on_outlined, "Address",
-                                address.isEmpty ? 'Not set' : address),
+                            _editableRow(
+                              context,
+                              icon: Icons.location_on_outlined,
+                              label: "Delivery Address",
+                              value: address.isEmpty ? 'Tap to set address' : address,
+                              onEdit: () => _editFieldDialog(
+                                context,
+                                label: 'Delivery Address',
+                                current: address,
+                                field: 'address',
+                                maxLines: 3,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -273,7 +295,7 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -288,32 +310,83 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
     );
   }
 
-  Widget _infoRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: _kPrimary.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: _kPrimary, size: 18),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-              const SizedBox(height: 2),
-              Text(value,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _kDark),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis),
-            ],
+  Future<void> _editFieldDialog(
+    BuildContext context, {
+    required String label,
+    required String current,
+    required String field,
+    TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
+  }) async {
+    final ctrl = TextEditingController(text: current);
+    await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Edit $label'),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: keyboardType,
+          maxLines: maxLines,
+          decoration: InputDecoration(
+            hintText: 'Enter $label',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
-      ],
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: _kPrimary, foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            onPressed: () async {
+              Navigator.pop(context);
+              await _db.collection('users').doc(_auth.currentUser!.uid).update({field: ctrl.text.trim()});
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+  }
+
+  Widget _editableRow(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+    required VoidCallback onEdit,
+  }) {
+    return GestureDetector(
+      onTap: onEdit,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: _kPrimary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: _kPrimary, size: 18),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                const SizedBox(height: 2),
+                Text(value,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _kDark),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          Icon(Icons.edit_outlined, color: _kPrimary.withValues(alpha: 0.5), size: 16),
+        ],
+      ),
     );
   }
 
@@ -336,7 +409,7 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                   width: isSelected ? 3 : 2,
                 ),
                 boxShadow: isSelected
-                    ? [BoxShadow(color: _kPrimary.withOpacity(0.25), blurRadius: 12, offset: const Offset(0, 4))]
+                    ? [BoxShadow(color: _kPrimary.withValues(alpha: 0.25), blurRadius: 12, offset: const Offset(0, 4))]
                     : [],
                 image: DecorationImage(
                   image: AssetImage('assets/images/$avatarName.png'),

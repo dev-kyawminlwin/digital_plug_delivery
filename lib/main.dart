@@ -13,40 +13,36 @@ import 'screens/customer/track_order_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  print("DEBUG: App Init Started");
 
   try {
+    print("DEBUG: About to initialize Firebase");
     await Firebase.initializeApp(
       options: const FirebaseOptions(
-        apiKey: 'AIzaSyAE0OwKyLnxr5VAs45eOOB5HafzqfUbKq4',
-        authDomain: 'digital-plug.firebaseapp.com',
-        appId: '1:673069079625:android:b7a4b01936aa5f107ef398',
+        apiKey: 'AIzaSyDbcB6VmgxPK5f1rXi5I2_OVD-YaNiDM8g',
+        appId: '1:673069079625:web:0edcd470e28071447ef398',
         messagingSenderId: '673069079625',
         projectId: 'digital-plug',
         storageBucket: 'digital-plug.firebasestorage.app',
+        authDomain: 'digital-plug.firebaseapp.com',
+        measurementId: 'G-YKEGV7T620',
       ),
     );
-    // ignore: avoid_print
-    print('[DPD] Firebase initialized OK');
-  } catch (e) {
-    // ignore: avoid_print
-    print('[DPD] Firebase init error: $e');
+    print("DEBUG: Firebase initialized successfully");
+  } catch (e, st) {
+    print("DEBUG: Firebase init failed! $e\n$st");
   }
 
-  // Safe settings — some FlutterFire 3.x web builds reject this
   try {
-    FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: false);
-    // ignore: avoid_print
-    print('[DPD] Firestore settings set');
+    FirebaseFirestore.instance.settings =
+        const Settings(persistenceEnabled: false);
+    print("DEBUG: Firestore settings applied");
   } catch (e) {
-    // ignore: avoid_print
-    print('[DPD] Firestore settings error: $e');
+    print("DEBUG: Firestore settings failed! $e");
   }
 
-  // ignore: avoid_print
-  print('[DPD] Calling runApp');
+  print("DEBUG: Calling runApp");
   runApp(const DigitalPlugApp());
-  // ignore: avoid_print
-  print('[DPD] runApp returned');
 }
 
 class DigitalPlugApp extends StatelessWidget {
@@ -54,6 +50,8 @@ class DigitalPlugApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = GoogleFonts.poppinsTextTheme();
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Digital Plug Delivery',
@@ -61,7 +59,7 @@ class DigitalPlugApp extends StatelessWidget {
         useMaterial3: true,
         primaryColor: const Color(0xFF1E3A8A),
         scaffoldBackgroundColor: Colors.white,
-        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
+        textTheme: textTheme,
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF1E3A8A),
           primary: const Color(0xFF1E3A8A),
@@ -79,8 +77,10 @@ class DigitalPlugApp extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF1F2937),
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16)),
+            padding:
+                const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
             elevation: 0,
           ),
         ),
@@ -88,13 +88,15 @@ class DigitalPlugApp extends StatelessWidget {
       home: const AuthGate(),
       routes: {
         '/login': (context) => const LoginScreen(),
-        '/subscription_expired': (context) => const SubscriptionExpiredScreen(),
+        '/subscription_expired': (context) =>
+            const SubscriptionExpiredScreen(),
         '/super_admin': (context) => const SuperAdminDashboard(),
         '/admin': (context) => const AdminDashboard(),
         '/rider': (context) => const RiderHome(),
       },
       onGenerateRoute: (settings) {
-        if (settings.name != null && settings.name!.startsWith('/track/')) {
+        if (settings.name != null &&
+            settings.name!.startsWith('/track/')) {
           final orderId = settings.name!.split('/track/').last;
           return MaterialPageRoute(
             builder: (context) => TrackOrderScreen(orderId: orderId),
@@ -106,6 +108,9 @@ class DigitalPlugApp extends StatelessWidget {
   }
 }
 
+/// AuthGate — never shows a blank screen.
+/// During Firebase auth 'waiting' state, show MarketplaceHome immediately.
+/// This is the fix for the blank white screen on Chrome.
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -114,21 +119,15 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, authSnapshot) {
-        // While auth resolves, show a loading scaffold (not blank)
         if (authSnapshot.connectionState == ConnectionState.waiting) {
-          return const _LoadingScaffold();
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
 
         final user = authSnapshot.data;
-        if (user == null) {
-          return const MarketplaceHome();
-        }
+        if (user == null) return const MarketplaceHome();
 
         return StreamBuilder<DocumentSnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .snapshots(),
+          stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
           builder: (context, userSnapshot) {
             if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
               return const MarketplaceHome();
@@ -138,74 +137,36 @@ class AuthGate extends StatelessWidget {
             final role = data['role'] as String?;
 
             switch (role) {
-              case 'super_admin':
-                return const SuperAdminDashboard();
-
+              case 'super_admin': return const SuperAdminDashboard();
               case 'admin':
                 final businessId = data['businessId'] as String?;
                 if (businessId == null) return const MarketplaceHome();
                 return StreamBuilder<DocumentSnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('businesses')
-                      .doc(businessId)
-                      .snapshots(),
+                  stream: FirebaseFirestore.instance.collection('businesses').doc(businessId).snapshots(),
                   builder: (context, bizSnapshot) {
                     if (!bizSnapshot.hasData) return const AdminDashboard();
-                    final bizData =
-                        bizSnapshot.data!.data() as Map<String, dynamic>?;
-                    final status =
-                        bizData?['subscriptionStatus'] ?? 'inactive';
-                    final subEnd =
-                        (bizData?['subscriptionEnd'] as Timestamp?)?.toDate();
-                    final isActive = status == 'active' &&
-                        (subEnd == null || subEnd.isAfter(DateTime.now()));
-                    return isActive
-                        ? const AdminDashboard()
-                        : const SubscriptionExpiredScreen();
+                    final bizData = bizSnapshot.data!.data() as Map<String, dynamic>?;
+                    final status = bizData?['subscriptionStatus'] ?? 'inactive';
+                    
+                    final dynamic subEndRaw = bizData?['subscriptionEnd'];
+                    DateTime? subEnd;
+                    if (subEndRaw is Timestamp) {
+                      subEnd = subEndRaw.toDate();
+                    } else if (subEndRaw is String) {
+                      subEnd = DateTime.tryParse(subEndRaw);
+                    }
+
+                    final isActive = status == 'active' && (subEnd == null || subEnd.isAfter(DateTime.now()));
+                    return isActive ? const AdminDashboard() : const SubscriptionExpiredScreen();
                   },
                 );
-
-              case 'rider':
-                return const RiderHome();
-
-              default:
-                return const MarketplaceHome();
+              case 'rider': return const RiderHome();
+              case 'customer':
+              default: return const MarketplaceHome();
             }
           },
         );
       },
-    );
-  }
-}
-
-/// Visible loading state — shows a branded splash while Firebase auth resolves.
-/// If you see this stuck on screen, Firebase Auth stream is not emitting.
-class _LoadingScaffold extends StatelessWidget {
-  const _LoadingScaffold();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFF1E3A8A),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.local_dining_rounded, color: Colors.white, size: 64),
-            SizedBox(height: 24),
-            Text(
-              'Digital Plug Delivery',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 16),
-            CircularProgressIndicator(color: Colors.white),
-          ],
-        ),
-      ),
     );
   }
 }

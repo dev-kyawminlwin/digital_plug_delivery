@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../main.dart';
 import '../admin/admin_dashboard.dart';
 import '../rider/rider_home.dart';
 import '../customer/marketplace_home.dart';
@@ -55,42 +56,54 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         password: pass,
       );
 
+      if (!mounted) return;
+
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(credential.user!.uid)
           .get();
 
+      if (!mounted) return;
+
       if (!doc.exists) throw "User data not found. Please contact support.";
 
-      final role = doc.data()?['role'];
+      final role = (doc.data()?['role'] as String?)?.trim();
       final businessId = doc.data()?['businessId'];
 
       if (mounted) {
         if (role == 'super_admin') {
-          Navigator.pushReplacementNamed(context, '/super_admin');
+          // Will fall through to unified AuthGate router block at the bottom
         } else if (role == 'admin') {
           if (businessId == null) throw "No business ID linked to this admin.";
           final bizDoc = await FirebaseFirestore.instance.collection('businesses').doc(businessId).get();
           if (!bizDoc.exists) throw "Business record not found.";
           final status = bizDoc.data()?['subscriptionStatus'] ?? 'inactive';
-          final subEnd = (bizDoc.data()?['subscriptionEnd'] as Timestamp?)?.toDate();
+          final dynamic sl = bizDoc.data()?['subscriptionEnd'];
+          final subEnd = sl is Timestamp ? sl.toDate() : (sl is String ? DateTime.tryParse(sl) : null);
           if (status != 'active' || (subEnd != null && subEnd.isBefore(DateTime.now()))) {
             Navigator.pushReplacementNamed(context, '/subscription_expired');
             return;
           }
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminDashboard()));
-        } else if (role == 'rider') {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const RiderHome()));
-        } else if (role == 'customer') {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MarketplaceHome()));
+        }
+
+        if (role == 'super_admin' || role == 'admin' || role == 'rider' || role == 'customer') {
+          // Send user strictly back to the AuthGate router root.
+          // IMPORTANT: Do NOT `push` AuthGate() again or it will duplicate the StreamListeners
+          // and cause FIRESTORE (11.9.1) INTERNAL ASSERTION FAILED: Unexpected state (ID: ca9).
+          // Just pop all modals until the original root AuthGate is revealed!
+          Navigator.of(context).popUntil((route) => route.isFirst);
+          return;
         } else {
-          throw "Unrecognized user role: $role";
+          await FirebaseAuth.instance.signOut();
+          _showError("Unrecognized user role: $role");
         }
       }
-    } on FirebaseAuthException catch (e) {
-      _showError(e.message ?? "Authentication failed");
-    } catch (e) {
-      _showError(e.toString());
+    } on FirebaseAuthException catch (e, st) {
+      print("FirebaseAuthException: ${e.code} | ${e.message}\n$st");
+      _showError("Firebase Auth Error: ${e.message ?? e.code}");
+    } catch (e, st) {
+      print("General Exception: $e\n$st");
+      _showError("Error: ${e.toString()}");
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -119,12 +132,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       body: Stack(
         children: [
           // Gradient Background
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment(0, 0.4),
-                colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment(0, 0.4),
+                  colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+                ),
               ),
             ),
           ),
@@ -132,6 +147,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
+              width: double.infinity,
               height: MediaQuery.of(context).size.height * 0.68,
               decoration: const BoxDecoration(
                 color: Colors.white,
@@ -140,7 +156,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             ),
           ),
           // Content
-          SafeArea(
+          Positioned.fill(
+            child: SafeArea(
             child: FadeTransition(
               opacity: _fadeAnim,
               child: SlideTransition(
@@ -158,7 +175,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           color: Colors.white,
                           shape: BoxShape.circle,
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 8))
+                            BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 20, offset: const Offset(0, 8))
                           ],
                         ),
                         child: ClipOval(
@@ -194,7 +211,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(28),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 24, offset: const Offset(0, 8)),
+                            BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 24, offset: const Offset(0, 8)),
                           ],
                         ),
                         child: Column(
@@ -276,8 +293,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       ),
 
                       const SizedBox(height: 28),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      Wrap(
+                        alignment: WrapAlignment.center,
                         children: [
                           const Text("Don't have an account? ", style: TextStyle(color: Color(0xFF6B7280))),
                           GestureDetector(
@@ -295,6 +312,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 ),
               ),
             ),
+          ),
           ),
         ],
       ),

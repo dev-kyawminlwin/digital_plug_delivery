@@ -68,7 +68,7 @@ class VendorFleetTab extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: _kDark,
                         borderRadius: BorderRadius.circular(20),
-                        boxShadow: [BoxShadow(color: _kDark.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 6))],
+                        boxShadow: [BoxShadow(color: _kDark.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 6))],
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -122,7 +122,7 @@ class VendorFleetTab extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(16),
-                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
                             ),
                             child: ListTile(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -131,8 +131,8 @@ class VendorFleetTab extends StatelessWidget {
                                   CircleAvatar(
                                     radius: 24,
                                     backgroundColor: isOnline
-                                        ? Colors.green.withOpacity(0.12)
-                                        : Colors.grey.withOpacity(0.12),
+                                        ? Colors.green.withValues(alpha: 0.12)
+                                        : Colors.grey.withValues(alpha: 0.12),
                                     child: Icon(Icons.motorcycle_rounded,
                                         color: isOnline ? Colors.green : Colors.grey, size: 24),
                                   ),
@@ -232,12 +232,12 @@ class VendorFleetTab extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.green.withOpacity(0.3)),
-                                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)],
+                                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)],
                               ),
                               child: ListTile(
                                 leading: CircleAvatar(
-                                  backgroundColor: Colors.green.withOpacity(0.1),
+                                  backgroundColor: Colors.green.withValues(alpha: 0.1),
                                   child: const Icon(Icons.person_rounded, color: Colors.green),
                                 ),
                                 title: Text(data['name'] ?? 'Rider',

@@ -129,8 +129,8 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                                     decoration: BoxDecoration(
                                       color: isAvailable
-                                          ? _kGreen.withOpacity(0.2)
-                                          : Colors.white.withOpacity(0.08),
+                                          ? _kGreen.withValues(alpha: 0.2)
+                                          : Colors.white.withValues(alpha: 0.08),
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(
                                         color: isAvailable ? _kGreen : Colors.white24,
@@ -167,7 +167,7 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                                     width: 38,
                                     height: 38,
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.08),
+                                      color: Colors.white.withValues(alpha: 0.08),
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(Icons.logout_rounded, color: Colors.white60, size: 18),
@@ -233,9 +233,9 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.12),
+          color: color.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -281,9 +281,9 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: _kGreen.withOpacity(0.4)),
+                border: Border.all(color: _kGreen.withValues(alpha: 0.4)),
                 boxShadow: [
-                  BoxShadow(color: _kGreen.withOpacity(0.1), blurRadius: 16, offset: const Offset(0, 4))
+                  BoxShadow(color: _kGreen.withValues(alpha: 0.1), blurRadius: 16, offset: const Offset(0, 4))
                 ],
               ),
               child: Padding(
@@ -296,9 +296,9 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: _kGreen.withOpacity(0.1),
+                            color: _kGreen.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
-                          ),
+                         ),
                           child: const Text("NEW ORDER",
                               style: TextStyle(color: _kGreen, fontWeight: FontWeight.bold, fontSize: 10)),
                         ),
@@ -426,14 +426,14 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(18),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 4))],
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 4))],
                 ),
                 child: Column(
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.07),
+                        color: statusColor.withValues(alpha: 0.07),
                         borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
                       ),
                       child: Row(
@@ -444,7 +444,7 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: statusColor.withOpacity(0.12),
+                              color: statusColor.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(order.status.toUpperCase().replaceAll('_', ' '),
@@ -474,7 +474,7 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                                 iconSize: 20,
                                 icon: const Icon(Icons.chat_rounded, color: Colors.blue),
                                 style: IconButton.styleFrom(
-                                  backgroundColor: Colors.blue.withOpacity(0.1),
+                                  backgroundColor: Colors.blue.withValues(alpha: 0.1),
                                   shape: const CircleBorder(),
                                 ),
                                 onPressed: () {

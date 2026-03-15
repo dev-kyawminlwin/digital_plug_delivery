@@ -64,7 +64,7 @@ class VendorRatingsTab extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final data = reviews[index].data() as Map<String, dynamic>;
                   final int stars = (data['rating'] as num).toInt();
-                  final date = data['createdAt'] != null ? (data['createdAt'] as Timestamp).toDate() : DateTime.now();
+                  final date = data['createdAt'] != null ? (data['createdAt'] is Timestamp ? (data['createdAt'] as Timestamp).toDate() : DateTime.tryParse(data['createdAt'].toString()) ?? DateTime.now()) : DateTime.now();
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),

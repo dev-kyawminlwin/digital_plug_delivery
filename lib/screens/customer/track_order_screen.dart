@@ -4,7 +4,6 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../models/order_model.dart';
 import '../shared/chat_screen.dart'; // Phase 16: Live Chat
-import 'dart:async';
 
 class TrackOrderScreen extends StatefulWidget {
   final String orderId;
@@ -81,7 +80,7 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(30),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 30, offset: const Offset(0, 10))
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 30, offset: const Offset(0, 10))
                     ]
                   ),
                   child: Column(
