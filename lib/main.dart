@@ -35,9 +35,18 @@ void main() async {
   }
 
   try {
-    FirebaseFirestore.instance.settings =
-        const Settings(persistenceEnabled: false);
-    print("DEBUG: Firestore settings applied");
+    // VERCEL QUIC TIMEOUT FIX:
+    // Disables the default WebChannel which conflicts with Chrome's QUIC protocol on Vercel.
+    // Forces standard WebSockets and enables Long-Polling fallback.
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true, // Allow local cache
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+      host: 'firestore.googleapis.com',
+      sslEnabled: true,
+      ignoreUndefinedProperties: true,
+      experimentalAutoDetectLongPolling: true,
+    );
+    print("DEBUG: Firestore settings applied (Vercel Fix)");
   } catch (e) {
     print("DEBUG: Firestore settings failed! $e");
   }
