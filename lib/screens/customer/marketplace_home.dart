@@ -21,7 +21,7 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
   int _bottomNavIndex = 0;
   String _selectedCategory = 'All';
 
-  static const Color _kPrimary = Color(0xFF1E3A8A);
+  static const Color _kPrimary = Color(0xFFFF5E1E);
   static const Color _kGold = Color(0xFFEAB308);
   static const Color _kDark = Color(0xFF1F2937);
 
@@ -75,18 +75,8 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
                 const SizedBox(height: 16),
                 // App Bar Row
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text("📍 Tachileik",
-                            style: TextStyle(fontSize: 12, color: Color(0xFF6B7280), fontWeight: FontWeight.w500)),
-                        const SizedBox(height: 2),
-                        const Text("Deliver Here",
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _kDark)),
-                      ],
-                    ),
                     StreamBuilder<User?>(
                       stream: FirebaseAuth.instance.authStateChanges(),
                       builder: (context, authSnapshot) {
@@ -144,9 +134,9 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
                                 ),
                                 child: avatar.isEmpty
                                     ? const Icon(
-                                        Icons.person_rounded,
-                                        color: Color(0xFF10B981),
-                                        size: 22,
+                                        Icons.person_outline_rounded,
+                                        color: _kDark,
+                                        size: 24,
                                       )
                                     : null,
                               ),
@@ -161,29 +151,28 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
 
                 // Hero text
                 const Text(
-                  "Tachileik's Best.",
-                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, height: 1.1, color: _kDark),
+                  "Get Your\nFavorite Meals\nDelivered\nToday!",
+                  style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, height: 1.15, color: _kDark),
                 ),
-                const Text(
-                  "Fast delivery. 🛵",
-                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, height: 1.1, color: _kPrimary),
-                ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
                 // Search Bar
                 Container(
-                  height: 50,
+                  height: 56,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF3F4F6),
-                    borderRadius: BorderRadius.circular(16),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 5)),
+                    ],
                   ),
                   child: Row(
                     children: [
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 20),
                       Icon(Icons.search, color: Colors.grey.shade400, size: 22),
-                      const SizedBox(width: 10),
-                      Text("Search restaurants & food...",
-                          style: TextStyle(color: Colors.grey.shade500, fontSize: 14)),
+                      const SizedBox(width: 12),
+                      Text("Search food or restaurants...",
+                          style: TextStyle(color: Colors.grey.shade400, fontSize: 15)),
                     ],
                   ),
                 ),
@@ -197,7 +186,7 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text("Restaurants near you",
+                    const Text("Popular restaurants",
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _kDark)),
                     Text("See all", style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
                   ],
@@ -326,9 +315,9 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.07), blurRadius: 16, offset: const Offset(0, 6)),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 16, offset: const Offset(0, 6)),
           ],
         ),
         child: Column(
@@ -336,9 +325,9 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
           children: [
             // Image with gradient overlay
             Expanded(
-              flex: 3,
+              flex: 12,
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -358,32 +347,17 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
-                            colors: [Colors.transparent, Colors.black.withValues(alpha: 0.18)],
+                            colors: [Colors.black.withValues(alpha: 0.2), Colors.transparent],
                           ),
                         ),
                       ),
                     ),
 
-                    // Rating Badge
+                    // Floating Heart
                     Positioned(
                       top: 10,
                       right: 10,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 6)],
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.star_rounded, color: _kGold, size: 13),
-                            SizedBox(width: 3),
-                            Text("4.8", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
+                      child: Icon(Icons.favorite_border_rounded, color: Colors.white, size: 20),
                     ),
                   ],
                 ),
@@ -391,27 +365,52 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
             ),
             // Info
             Expanded(
-              flex: 2,
+              flex: 10,
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      data['name'] ?? 'Unnamed Shop',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _kDark),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          data['name'] ?? 'Unnamed Shop',
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: _kDark),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+                        // 5 Stars row mockup
+                        Row(
+                          children: [
+                            const Icon(Icons.star_rounded, color: _kGold, size: 14),
+                            const Icon(Icons.star_rounded, color: _kGold, size: 14),
+                            const Icon(Icons.star_rounded, color: _kGold, size: 14),
+                            const Icon(Icons.star_rounded, color: _kGold, size: 14),
+                            Icon(Icons.star_rounded, color: Colors.grey.shade300, size: 14),
+                            const SizedBox(width: 4),
+                            Text("4.0", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade600)),
+                          ],
+                        ),
+                      ],
                     ),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Icon(Icons.delivery_dining_rounded, color: Color(0xFFEA580C), size: 14),
-                        const SizedBox(width: 4),
                         Text(
                           data['deliveryFee'] != null ? "MMK ${data['deliveryFee']}" : "Free",
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFFEA580C)),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _kDark),
                         ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _kPrimary,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text("VISIT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                        )
                       ],
                     ),
                   ],
@@ -519,31 +518,54 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
       (Icons.receipt_long_rounded, Icons.receipt_long_outlined, "Orders"),
     ];
     return Container(
-      height: 64,
+      height: 72,
       decoration: BoxDecoration(
         color: _kDark,
         borderRadius: BorderRadius.circular(36),
         boxShadow: [
-          BoxShadow(color: _kDark.withValues(alpha: 0.35), blurRadius: 16, offset: const Offset(0, 6)),
+          BoxShadow(color: _kDark.withValues(alpha: 0.35), blurRadius: 16, offset: const Offset(0, 8)),
         ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: List.generate(items.length, (index) {
           final isSelected = _bottomNavIndex == index;
+          final color = isSelected ? const Color(0xFFFF5E1E) : Colors.white38;
           return GestureDetector(
             onTap: () => setState(() => _bottomNavIndex = index),
+            behavior: HitTestBehavior.opaque,
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: isSelected ? Colors.white.withValues(alpha: 0.15) : Colors.transparent,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Icon(
-                isSelected ? items[index].$1 : items[index].$2,
-                size: 26,
-                color: isSelected ? Colors.white : Colors.white38,
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              padding: EdgeInsets.only(top: isSelected ? 8 : 12, bottom: isSelected ? 8 : 12, left: 16, right: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  AnimatedScale(
+                    scale: isSelected ? 1.1 : 1.0,
+                    duration: const Duration(milliseconds: 250),
+                    child: Icon(
+                      isSelected ? items[index].$1 : items[index].$2,
+                      size: 24,
+                      color: color,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  AnimatedOpacity(
+                    opacity: isSelected ? 1.0 : 0.7,
+                    duration: const Duration(milliseconds: 250),
+                    child: Text(
+                      items[index].$3,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 11,
+                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:geolocator/geolocator.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final String businessId;
@@ -71,10 +72,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       widget.detailedCart!.forEach((key, item) {
         final product = item['product'];
         final qty = item['qty'];
-        final options = item['options'] as Map<String, String>;
+        final options = item['options'] as Map<String, String>? ?? {};
+        final adds = item['addOns'] as List<Map<String, dynamic>>? ?? [];
+        
         orderSummary += "${product.name} x$qty\n";
         if (options.isNotEmpty) {
           orderSummary += "  Options: ${options.entries.map((e) => "${e.key}: ${e.value}").join(', ')}\n";
+        }
+        if (adds.isNotEmpty) {
+          orderSummary += "  Add-ons: ${adds.map((e) => "+${e['name']}").join(', ')}\n";
         }
       });
     } else {
@@ -84,7 +90,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
 
     try {
-      final docRef = await FirebaseFirestore.instance.collection('orders').add({
+      Map<String, dynamic> orderData = {
         'businessId': widget.businessId,
         'customerId': FirebaseAuth.instance.currentUser!.uid,
         'customerName': _nameController.text,
@@ -98,7 +104,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         'paymentMethod': _selectedPaymentMethod,
         'status': 'looking_for_rider',
         'createdAt': FieldValue.serverTimestamp(),
-      });
+        'customerLat': 0.0,
+        'customerLng': 0.0,
+      };
+
+      // Attempt to get location quietly
+      try {
+        bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+        if (serviceEnabled) {
+          LocationPermission permission = await Geolocator.checkPermission();
+          if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+            Position position = await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.high));
+            orderData['customerLat'] = position.latitude;
+            orderData['customerLng'] = position.longitude;
+          }
+        }
+      } catch (e) {
+        // Silently fail GPS, use default 0.0
+      }
+
+      final docRef = await FirebaseFirestore.instance.collection('orders').add(orderData);
 
       if (mounted) {
         setState(() => _isPlacingOrder = false);

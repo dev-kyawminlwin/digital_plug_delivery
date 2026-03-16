@@ -11,6 +11,7 @@ class ProductModel {
   final List<String> categories; // Kept for backwards compatibility if needed, or migration
   final List<String> customOptions; // e.g., ["Chicken", "Beef", "Pork"]
   final List<Map<String, dynamic>> optionGroups; // {"title": "Meat", "options": ["Chicken", "Beef"]}
+  final List<Map<String, dynamic>> addOns; // Phase 5: [{"name": "Cheese", "price": 500}]
   final bool isAvailable;
   final DateTime createdAt;
 
@@ -25,6 +26,7 @@ class ProductModel {
     this.categories = const [],
     this.customOptions = const [],
     this.optionGroups = const [],
+    this.addOns = const [],
     this.isAvailable = true,
     required this.createdAt,
   });
@@ -43,6 +45,9 @@ class ProductModel {
       optionGroups: map['optionGroups'] != null 
           ? List<Map<String, dynamic>>.from(map['optionGroups'].map((x) => Map<String, dynamic>.from(x)))
           : [],
+      addOns: map['addOns'] != null 
+          ? List<Map<String, dynamic>>.from(map['addOns'].map((x) => Map<String, dynamic>.from(x)))
+          : [],
       isAvailable: map['isAvailable'] ?? true,
       createdAt: map['createdAt'] != null ? (map['createdAt'] is Timestamp ? (map['createdAt'] as Timestamp).toDate() : DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now()) : DateTime.now(),
     );
@@ -59,6 +64,7 @@ class ProductModel {
       'categories': categories,
       'customOptions': customOptions,
       'optionGroups': optionGroups,
+      'addOns': addOns,
       'isAvailable': isAvailable,
       'createdAt': Timestamp.fromDate(createdAt),
     };

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/order_model.dart';
 import '../../services/order_service.dart';
 import '../../services/location_service.dart';
@@ -66,15 +67,7 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
         final riderName = data['name'] as String? ?? 'Rider';
         final isAvailable = data['isAvailable'] as bool? ?? false;
 
-        if (businessId == null) {
-          return Scaffold(
-            backgroundColor: _kBg,
-            body: Center(
-              child: Text("No business assigned. Contact your admin.",
-                  style: const TextStyle(color: Colors.white60, fontSize: 15)),
-            ),
-          );
-        }
+        // Removed early exit for businessId. Riders are now fully independent platform operators.
 
         return Scaffold(
           backgroundColor: const Color(0xFFF9FAFB),
@@ -215,8 +208,8 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                   controller: _tabController,
                   physics: const NeverScrollableScrollPhysics(),
                   children: [
-                    _buildMyDeliveriesTab(businessId, data, walletBalance, collectedCash),
-                    _buildOrderRadarTab(riderName, businessId),
+                    _buildMyDeliveriesTab(data, walletBalance, collectedCash),
+                    _buildOrderRadarTab(riderName),
                     const RiderFleetMapScreen(),
                   ],
                 ),
@@ -250,9 +243,9 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
     );
   }
 
-  Widget _buildOrderRadarTab(String riderName, String businessId) {
+  Widget _buildOrderRadarTab(String riderName) {
     return StreamBuilder<List<OrderModel>>(
-      stream: _orderService.getAvailableOrders(businessId),
+      stream: _orderService.getAvailableOrders(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
         final availableOrders = snapshot.data!;
@@ -354,9 +347,9 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
     );
   }
 
-  Widget _buildMyDeliveriesTab(String businessId, Map<String, dynamic> data, double walletBalance, double collectedCash) {
+  Widget _buildMyDeliveriesTab(Map<String, dynamic> data, double walletBalance, double collectedCash) {
     return StreamBuilder<List<OrderModel>>(
-      stream: _orderService.getRiderOrders(uid, businessId),
+      stream: _orderService.getRiderOrders(uid),
       builder: (context, snapshot) {
         if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
@@ -483,6 +476,21 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                                   ));
                                 },
                               ),
+                              if (order.customerLat != 0.0 && order.customerLng != 0.0)
+                                IconButton(
+                                  iconSize: 20,
+                                  icon: const Icon(Icons.navigation_rounded, color: Colors.green),
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: Colors.green.withValues(alpha: 0.1),
+                                    shape: const CircleBorder(),
+                                  ),
+                                  onPressed: () async {
+                                    final url = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=${order.customerLat},${order.customerLng}');
+                                    if (await canLaunchUrl(url)) {
+                                      await launchUrl(url);
+                                    }
+                                  },
+                                ),
                               const SizedBox(width: 8),
                               _buildActionButton(order),
                             ],

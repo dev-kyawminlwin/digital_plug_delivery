@@ -13,6 +13,7 @@ class AuthService {
     required String password,
     required String businessName,
     required String adminName,
+    required String address,
   }) async {
     try {
       // 1. Create the Auth User
@@ -29,6 +30,7 @@ class AuthService {
       await _db.collection('businesses').doc(businessId).set({
         'name': businessName,
         'ownerUid': uid,
+        'address': address,
         'subscriptionStatus': 'active',
         'subscriptionEnd': Timestamp.fromDate(DateTime.now().add(const Duration(days: 30))),
         'createdAt': FieldValue.serverTimestamp(),
@@ -45,6 +47,41 @@ class AuthService {
       print("SaaS Onboarding Complete for $businessName");
     } catch (e) {
       print("Error during onboarding: $e");
+      rethrow;
+    }
+  }
+
+  // Phase 1: Global Rider Registration
+  Future<void> registerRider({
+    required String email,
+    required String password,
+    required String name,
+    required String phone,
+    required String homeAddress,
+  }) async {
+    try {
+      UserCredential res = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      String uid = res.user!.uid;
+
+      await _db.collection('users').doc(uid).set({
+        'name': name,
+        'phone': phone,
+        'email': email,
+        'role': 'rider',
+        'homeAddress': homeAddress,
+        'isAvailable': false,
+        'walletBalance': 0,
+        'collectedCash': 0,
+        'deliveriesCount': 0,
+        'createdAt': FieldValue.serverTimestamp(),
+        // IMPORTANT: No businessId attached for a global platform rider
+      });
+      print("Global Rider Onboarding Complete for $name");
+    } catch (e) {
+      print("Error during rider onboarding: $e");
       rethrow;
     }
   }

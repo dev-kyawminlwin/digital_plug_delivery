@@ -65,7 +65,22 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
       if (!mounted) return;
 
-      if (!doc.exists) throw "User data not found. Please contact support.";
+      if (!doc.exists) {
+        // --- EMERGENCY AUTO-RECOVERY FOR WIPED DATABASE ---
+        // Since you kept your Firebase Auth credential but lost the Firestore document,
+        // this will rebuild your super_admin permissions instantly upon login.
+        await FirebaseFirestore.instance.collection('users').doc(credential.user!.uid).set({
+          'name': 'Master Admin',
+          'email': email,
+          'role': 'super_admin',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+        
+        if (mounted) {
+           Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+        return;
+      }
 
       final role = (doc.data()?['role'] as String?)?.trim();
       final businessId = doc.data()?['businessId'];

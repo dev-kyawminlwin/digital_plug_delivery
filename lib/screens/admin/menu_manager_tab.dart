@@ -22,6 +22,7 @@ class _MenuManagerTabState extends State<MenuManagerTab> {
     String category = "Meals";
     String? base64Image;
     List<Map<String, dynamic>> optionGroups = [];
+    List<Map<String, dynamic>> addOns = [];
 
     showDialog(
       context: context,
@@ -135,6 +136,55 @@ class _MenuManagerTabState extends State<MenuManagerTab> {
                           ),
                           onSaved: (v) => customOptionsString = v ?? "",
                         ),
+                      // NEW: Add-ons (Toppings with Prices) Section
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      const Text("Custom Add-ons (e.g., Extra Cheese +500) [Optional]", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange)),
+                      const SizedBox(height: 8),
+                      ...List.generate(addOns.length, (index) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: TextFormField(
+                                  initialValue: addOns[index]['name'],
+                                  decoration: const InputDecoration(labelText: "Add-on Name"),
+                                  onChanged: (val) => addOns[index]['name'] = val,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                flex: 1,
+                                child: TextFormField(
+                                  initialValue: addOns[index]['price'].toString(),
+                                  decoration: const InputDecoration(labelText: "+Price"),
+                                  keyboardType: TextInputType.number,
+                                  onChanged: (val) {
+                                    addOns[index]['price'] = double.tryParse(val) ?? 0.0;
+                                  },
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.remove_circle, color: Colors.red),
+                                onPressed: () {
+                                  setDialogState(() => addOns.removeAt(index));
+                                },
+                              )
+                            ],
+                          ),
+                        );
+                      }),
+                      TextButton.icon(
+                        icon: const Icon(Icons.add_circle_outline, color: Colors.deepOrange),
+                        label: const Text("Add New Topping", style: TextStyle(color: Colors.deepOrange)),
+                        onPressed: () {
+                          setDialogState(() => addOns.add({"name": "", "price": 0.0}));
+                        },
+                      ),
+                      const SizedBox(height: 16),
                     ],
                   );
                 }
@@ -164,6 +214,12 @@ class _MenuManagerTabState extends State<MenuManagerTab> {
                     return title.isNotEmpty && gOptions.isNotEmpty;
                   }).toList();
 
+                  // Cleanup empty addons
+                  final validAddOns = addOns.where((a) {
+                    final name = a['name'] as String;
+                    return name.isNotEmpty;
+                  }).toList();
+
                   await FirebaseFirestore.instance.collection('products').add(
                     ProductModel(
                       id: '', // Firestore auto-generates
@@ -174,6 +230,7 @@ class _MenuManagerTabState extends State<MenuManagerTab> {
                       description: description,
                       customOptions: options,
                       optionGroups: validOptionGroups,
+                      addOns: validAddOns,
                       imageUrl: base64Image ?? '',
                       createdAt: DateTime.now(),
                     ).toMap()
@@ -241,6 +298,8 @@ class _MenuManagerTabState extends State<MenuManagerTab> {
                         Text("Options: ${product.customOptions.join(', ')}", style: const TextStyle(fontSize: 12)),
                       if (product.optionGroups.isNotEmpty)
                         Text("Groups: ${product.optionGroups.length}", style: const TextStyle(fontSize: 12, color: Colors.blue)),
+                      if (product.addOns.isNotEmpty)
+                        Text("+ ${product.addOns.length} Add-ons", style: const TextStyle(fontSize: 12, color: Colors.deepOrange)),
                       if (!product.isAvailable)
                         const Text("OUT OF STOCK", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 10)),
                     ],

@@ -16,6 +16,28 @@ class TrackOrderScreen extends StatefulWidget {
 class _TrackOrderScreenState extends State<TrackOrderScreen> {
   final MapController _mapController = MapController();
 
+  String _getDynamicETA(String status) {
+    switch (status) {
+      case 'looking_for_rider': return "~20-30 min";
+      case 'assigned': return "~15-20 min";
+      case 'picked_up': return "~5-10 min";
+      case 'arrived': return "Arriving Now!";
+      case 'completed': return "Delivered";
+      default: return "--";
+    }
+  }
+
+  String _getDynamicStatusLabel(String status) {
+    switch (status) {
+      case 'looking_for_rider': return "Finding a Rider for you";
+      case 'assigned': return "Rider is heading to Shop";
+      case 'picked_up': return "Order is on the way!";
+      case 'arrived': return "Rider has arrived!";
+      case 'completed': return "Enjoy your meal!";
+      default: return "Processing...";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -86,23 +108,59 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Wait Time & Address Row
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(color: Colors.grey.shade100, shape: BoxShape.circle),
-                            child: const Icon(Icons.access_time, color: Color(0xFF1F2937)),
+                      // Dynamic Status & ETA Highlighted Card
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: order.status == 'completed' 
+                              ? [Colors.green.shade500, Colors.green.shade700]
+                              : [const Color(0xFFFF5E1E), const Color(0xFFD94A1A)], // Vibrant Orange
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                          const SizedBox(width: 16),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text("10-15 min", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1F2937))),
-                              Text("Estimated Delivery", style: TextStyle(color: Colors.grey, fontSize: 13)),
-                            ],
-                          )
-                        ],
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: (order.status == 'completed' ? Colors.green : const Color(0xFFFF5E1E)).withValues(alpha: 0.3),
+                              blurRadius: 15,
+                              offset: const Offset(0, 8),
+                            )
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                order.status == 'completed' ? Icons.check_circle_rounded : Icons.local_shipping_rounded,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _getDynamicStatusLabel(order.status).toUpperCase(),
+                                    style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "ETA: ${_getDynamicETA(order.status)}",
+                                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 20),
                       Row(

@@ -24,9 +24,8 @@ class OrderService {
   }
 
   // Phase 9: Public available orders for broadcast dispatch
-  Stream<List<OrderModel>> getAvailableOrders(String businessId) {
+  Stream<List<OrderModel>> getAvailableOrders() {
     return _orders
-        .where('businessId', isEqualTo: businessId)
         .where('status', isEqualTo: 'looking_for_rider')
         .snapshots()
         .map((snapshot) => snapshot.docs
@@ -34,10 +33,9 @@ class OrderService {
         .toList());
   }
 
-  // Rider: Get only assigned/picked/arrived orders live for specific business
-  Stream<List<OrderModel>> getRiderOrders(String uid, String businessId) {
+  // Rider: Get only assigned/picked/arrived orders live
+  Stream<List<OrderModel>> getRiderOrders(String uid) {
     return _orders
-        .where('businessId', isEqualTo: businessId)
         .where('assignedRider', isEqualTo: uid)
         .where('status', whereIn: ['assigned', 'picked_up', 'arrived'])
         .snapshots()

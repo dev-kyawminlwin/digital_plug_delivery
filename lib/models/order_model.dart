@@ -35,7 +35,8 @@ class OrderModel {
   final DateTime updatedAt;
   final String paymentMethod;
   final String itemsSummary; // Phase 14: Human-readable items list for order cards
-
+  final double customerLat; // Phase 15: GPS Navigation
+  final double customerLng; // Phase 15: GPS Navigation
 
   OrderModel({
     required this.id,
@@ -54,6 +55,8 @@ class OrderModel {
     required this.updatedAt,
     required this.paymentMethod,
     this.itemsSummary = '',
+    this.customerLat = 0.0,
+    this.customerLng = 0.0,
   });
 
   // 3. Factory for reading from Firestore
@@ -77,6 +80,8 @@ class OrderModel {
           : (map['createdAt'] is Timestamp ? (map['createdAt'] as Timestamp).toDate() : DateTime.tryParse(map['createdAt']) ?? DateTime.now()),
       paymentMethod: map['paymentMethod'] ?? 'Cash',
       itemsSummary: map['itemsSummary'] as String? ?? '',
+      customerLat: (map['customerLat'] as num?)?.toDouble() ?? 0.0,
+      customerLng: (map['customerLng'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -98,6 +103,8 @@ class OrderModel {
       'updatedAt': Timestamp.fromDate(updatedAt),
       'paymentMethod': paymentMethod,
       'itemsSummary': itemsSummary,
+      'customerLat': customerLat,
+      'customerLng': customerLng,
     };
   }
 }

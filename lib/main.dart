@@ -10,6 +10,7 @@ import 'screens/super_admin/super_admin_dashboard.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/rider/rider_home.dart';
 import 'screens/customer/track_order_screen.dart';
+import 'screens/auth/welcome_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,12 +58,12 @@ class DigitalPlugApp extends StatelessWidget {
       title: 'Digital Plug Delivery',
       theme: ThemeData(
         useMaterial3: true,
-        primaryColor: const Color(0xFF1E3A8A),
+        primaryColor: const Color(0xFFFF5E1E),
         scaffoldBackgroundColor: Colors.white,
         textTheme: textTheme,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1E3A8A),
-          primary: const Color(0xFF1E3A8A),
+          seedColor: const Color(0xFFFF5E1E),
+          primary: const Color(0xFFFF5E1E),
           secondary: const Color(0xFFEAB308),
           surface: Colors.white,
           onSurface: const Color(0xFF1F2937),
@@ -124,7 +125,7 @@ class AuthGate extends StatelessWidget {
         }
 
         final user = authSnapshot.data;
-        if (user == null) return const MarketplaceHome();
+        if (user == null) return const WelcomeScreen();
 
         return StreamBuilder<DocumentSnapshot>(
           stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
