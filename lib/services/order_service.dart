@@ -13,11 +13,14 @@ class OrderService {
   Stream<List<OrderModel>> getOrders(String businessId) {
     return _orders
         .where('businessId', isEqualTo: businessId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-        .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
-        .toList());
+        .map((snapshot) {
+           final list = snapshot.docs
+              .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
+              .toList();
+           list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+           return list;
+        });
   }
 
   // Phase 9: Public available orders for broadcast dispatch

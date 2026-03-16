@@ -118,12 +118,14 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                           Positioned(
                             top: -20,
                             right: -30,
-                            child: Container(
-                              width: 130,
-                              height: 130,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white.withValues(alpha: 0.05),
+                            child: IgnorePointer(
+                              child: Container(
+                                width: 130,
+                                height: 130,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                ),
                               ),
                             ),
                           ),

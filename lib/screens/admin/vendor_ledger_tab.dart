@@ -15,7 +15,6 @@ class VendorLedgerTab extends StatelessWidget {
           .collection('orders')
           .where('businessId', isEqualTo: businessId)
           .where('status', isEqualTo: 'completed')
-          .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
@@ -32,6 +31,9 @@ class VendorLedgerTab extends StatelessWidget {
           completedOrders.add(order);
           totalRevenue += order.totalPrice; // Assuming shop keeps total price minus delivery fee, or shop keeps food price. The deliveryFee is usually separate.
         }
+        
+        // Locally sort to avoid requiring composite indexes for 'status' + 'createdAt'
+        completedOrders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
         return Column(
           children: [

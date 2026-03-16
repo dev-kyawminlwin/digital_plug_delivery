@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/order_model.dart';
 import 'package:intl/intl.dart';
+import 'track_order_screen.dart';
 
 class CustomerOrderHistoryTab extends StatelessWidget {
   const CustomerOrderHistoryTab({super.key});
@@ -99,13 +100,21 @@ class CustomerOrderHistoryTab extends StatelessWidget {
       stream: FirebaseFirestore.instance
           .collection('orders')
           .where('customerId', isEqualTo: user.uid)
-          .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-        final docs = snapshot.data!.docs;
+        // Sort locally to bypass Firebase Composite Index requirement
+        final docs = snapshot.data!.docs.toList();
+        docs.sort((a, b) {
+          final tA = (a.data() as Map<String, dynamic>)['createdAt'];
+          final tB = (b.data() as Map<String, dynamic>)['createdAt'];
+          final dateA = tA is Timestamp ? tA.toDate() : (tA is String ? DateTime.tryParse(tA) ?? DateTime.now() : DateTime.now());
+          final dateB = tB is Timestamp ? tB.toDate() : (tB is String ? DateTime.tryParse(tB) ?? DateTime.now() : DateTime.now());
+          return dateB.compareTo(dateA);
+        });
+
         if (docs.isEmpty) {
           return Center(
             child: Column(
@@ -255,6 +264,24 @@ class CustomerOrderHistoryTab extends StatelessWidget {
                                   Text("${data['rating']}/5 rated",
                                       style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFD97706))),
                                 ],
+                              )
+                            else if (!isCompleted)
+                              ElevatedButton.icon(
+                                icon: const Icon(Icons.map_outlined, size: 16),
+                                label: const Text("Track Order"),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _kPrimary,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => TrackOrderScreen(orderId: order.id)),
+                                  );
+                                },
                               ),
                           ],
                         ),

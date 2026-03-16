@@ -136,10 +136,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                   stream: FirebaseFirestore.instance
                                       .collection('orders')
                                       .where('businessId', isEqualTo: businessId)
-                                      .where('status', isNotEqualTo: 'completed')
                                       .snapshots(),
                                   builder: (context, snap) {
-                                    final count = snap.data?.docs.length ?? 0;
+                                    if (!snap.hasData) return const SizedBox.shrink();
+                                    
+                                    // Filter locally to avoid requiring composite indexes
+                                    final liveDocs = snap.data!.docs.where((doc) {
+                                      final data = doc.data() as Map<String, dynamic>;
+                                      return data['status'] != 'completed';
+                                    }).toList();
+                                    
+                                    final count = liveDocs.length;
                                     if (count == 0) return const SizedBox.shrink();
                                     return Container(
                                       margin: const EdgeInsets.only(right: 12),
