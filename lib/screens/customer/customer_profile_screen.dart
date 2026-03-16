@@ -36,7 +36,25 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           final data = snapshot.data!.data() as Map<String, dynamic>?;
-          if (data == null) return const Center(child: Text("No Profile Data"));
+          if (data == null) {
+            return Scaffold(
+              appBar: AppBar(
+                title: const Text("Profile Error"),
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.logout, color: Colors.red),
+                    onPressed: () async {
+                      await _auth.signOut();
+                      if (mounted) {
+                        Navigator.of(context).popUntil((route) => route.isFirst);
+                      }
+                    },
+                  )
+                ],
+              ),
+              body: const Center(child: Text("No Profile Data found. Please logout and re-register.")),
+            );
+          }
 
           final int points = data['points'] ?? 0;
           final String currentAvatar = data['avatar'] ?? '';
