@@ -6,8 +6,9 @@ class ProductModel {
   final String name;
   final String description;
   final double basePrice;
+  final double? discountPrice; // Phase 6: Promotional Pricing
   final String imageUrl;
-  final String category; // "Meals", "Drinks", "Soup", "Vegetables"
+  final String category; // "Meals", "Drinks", "Soup", "Vegetables" (Now dynamic)
   final List<String> categories; // Kept for backwards compatibility if needed, or migration
   final List<String> customOptions; // e.g., ["Chicken", "Beef", "Pork"]
   final List<Map<String, dynamic>> optionGroups; // {"title": "Meat", "options": ["Chicken", "Beef"]}
@@ -21,6 +22,7 @@ class ProductModel {
     required this.name,
     this.description = '',
     required this.basePrice,
+    this.discountPrice,
     this.imageUrl = '',
     this.category = 'Meals',
     this.categories = const [],
@@ -38,6 +40,7 @@ class ProductModel {
       name: map['name'] ?? '',
       description: map['description'] ?? '',
       basePrice: (map['basePrice'] as num).toDouble(),
+      discountPrice: map['discountPrice'] != null ? (map['discountPrice'] as num).toDouble() : null,
       imageUrl: map['imageUrl'] ?? '',
       category: map['category'] ?? 'Meals',
       categories: List<String>.from(map['categories'] ?? []),
@@ -59,6 +62,7 @@ class ProductModel {
       'name': name,
       'description': description,
       'basePrice': basePrice,
+      'discountPrice': discountPrice,
       'imageUrl': imageUrl,
       'category': category,
       'categories': categories,

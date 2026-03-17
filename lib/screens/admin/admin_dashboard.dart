@@ -682,6 +682,99 @@ class _AdminDashboardState extends State<AdminDashboard> {
               );
             },
           ),
+          
+          const SizedBox(height: 20),
+
+          // 📈 Trending Insights Widget
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('orders')
+                .where('businessId', isEqualTo: businessId)
+                .snapshots(),
+            builder: (context, snap) {
+              if (!snap.hasData) return const SizedBox.shrink();
+              
+              final docs = snap.data!.docs;
+              if (docs.isEmpty) return const SizedBox.shrink();
+
+              // Calculate frequencies
+              final Map<String, int> frequencies = {};
+              final exp = RegExp(r"^\d+x (.*?)(?: \(.*?\))?$", multiLine: true);
+              
+              for (var doc in docs) {
+                final data = doc.data() as Map<String, dynamic>;
+                final summary = data['itemsSummary'] as String? ?? '';
+                final matches = exp.allMatches(summary);
+                for (var m in matches) {
+                  final productName = m.group(1)?.trim();
+                  if (productName != null && productName.isNotEmpty) {
+                    frequencies[productName] = (frequencies[productName] ?? 0) + 1;
+                  }
+                }
+              }
+
+              if (frequencies.isEmpty) return const SizedBox.shrink();
+
+              final sorted = frequencies.entries.toList()
+                ..sort((a, b) => b.value.compareTo(a.value));
+              final top3 = sorted.take(3).toList();
+
+              return Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.orange.shade50, Colors.deepOrange.shade50],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.deepOrange.shade200, width: 1),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.trending_up_rounded, color: Colors.deepOrange),
+                        const SizedBox(width: 8),
+                        const Text("TRENDING INSIGHTS",
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.deepOrange, letterSpacing: 0.8)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      "Your customers love these items! Consider adding a Discount Price to them in your Menu Manager to boost sales even further.",
+                      style: TextStyle(fontSize: 13, color: Colors.black87, height: 1.4),
+                    ),
+                    const SizedBox(height: 16),
+                    ...top3.asMap().entries.map((entry) {
+                      final rank = entry.key + 1;
+                      final food = entry.value;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 24, height: 24,
+                              decoration: BoxDecoration(color: Colors.deepOrange, shape: BoxShape.circle),
+                              child: Center(child: Text("#$rank", style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(child: Text(food.key, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: _kDark))),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                              child: Text("${food.value} Orders", style: const TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.bold, fontSize: 12)),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ],
+                ),
+              );
+            },
+          ),
         ],
       ),
     );

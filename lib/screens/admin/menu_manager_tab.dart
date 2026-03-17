@@ -13,22 +13,29 @@ class MenuManagerTab extends StatefulWidget {
 }
 
 class _MenuManagerTabState extends State<MenuManagerTab> {
-  void _showAddProductDialog() {
+  void _showAddOrEditProductDialog({ProductModel? product}) {
     final _formKey = GlobalKey<FormState>();
-    String name = "";
-    double basePrice = 0;
-    String description = "";
-    String customOptionsString = "";
-    String category = "Meals";
-    String? base64Image;
-    List<Map<String, dynamic>> optionGroups = [];
-    List<Map<String, dynamic>> addOns = [];
+    String name = product?.name ?? "";
+    double basePrice = product?.basePrice ?? 0;
+    double? discountPrice = product?.discountPrice;
+    String description = product?.description ?? "";
+    String customOptionsString = product?.customOptions.join(', ') ?? "";
+    String category = product?.category ?? "Meals";
+    String? base64Image = (product?.imageUrl.isNotEmpty == true) ? product!.imageUrl : null;
+    List<Map<String, dynamic>> optionGroups = product != null 
+        ? product.optionGroups.map((g) => Map<String, dynamic>.from(g)).toList() 
+        : [];
+    List<Map<String, dynamic>> addOns = product != null
+        ? product.addOns.map((a) => Map<String, dynamic>.from(a)).toList()
+        : [];
+
+    final TextEditingController categoryCtrl = TextEditingController(text: category);
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text("Add Menu Item"),
+          title: Text(product == null ? "Add Menu Item" : "Edit Menu Item"),
           content: Form(
             key: _formKey,
             child: SingleChildScrollView(
@@ -36,6 +43,7 @@ class _MenuManagerTabState extends State<MenuManagerTab> {
                 builder: (context, setDialogState) {
                   return Column(
                     mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (base64Image != null)
                         const Padding(
@@ -44,7 +52,7 @@ class _MenuManagerTabState extends State<MenuManagerTab> {
                         ),
                       ElevatedButton.icon(
                         icon: const Icon(Icons.image),
-                        label: const Text("Attach Image"),
+                        label: Text(base64Image == null ? "Attach Image" : "Change Image"),
                         onPressed: () async {
                           final b64 = await ImageHelper.pickAndCompressImage();
                           if (b64 != null) {
@@ -53,90 +61,116 @@ class _MenuManagerTabState extends State<MenuManagerTab> {
                         },
                       ),
                       TextFormField(
+                        initialValue: name,
                         decoration: const InputDecoration(labelText: "Product Name"),
                         validator: (v) => v!.isEmpty ? "Required" : null,
                         onSaved: (v) => name = v!,
                       ),
-                      TextFormField(
-                        decoration: const InputDecoration(labelText: "Price (MMK)"),
-                        keyboardType: TextInputType.number,
-                        validator: (v) => v!.isEmpty ? "Required" : null,
-                        onSaved: (v) => basePrice = double.tryParse(v!) ?? 0,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              initialValue: basePrice > 0 ? basePrice.toStringAsFixed(0) : '',
+                              decoration: const InputDecoration(labelText: "Price (MMK)"),
+                              keyboardType: TextInputType.number,
+                              validator: (v) => v!.isEmpty ? "Required" : null,
+                              onSaved: (v) => basePrice = double.tryParse(v!) ?? 0,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              initialValue: discountPrice != null ? discountPrice.toStringAsFixed(0) : '',
+                              decoration: const InputDecoration(labelText: "Discount Price (Opt)"),
+                              keyboardType: TextInputType.number,
+                              onSaved: (v) => discountPrice = (v != null && v.isNotEmpty) ? (double.tryParse(v) ?? 0) : null,
+                            ),
+                          ),
+                        ],
                       ),
                       TextFormField(
+                        initialValue: description,
                         decoration: const InputDecoration(labelText: "Description (Optional)"),
                         onSaved: (v) => description = v ?? "",
                       ),
                       const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        value: category,
-                        decoration: const InputDecoration(labelText: "Category"),
-                        items: ["Meals", "Drinks", "Soup", "Vegetables"].map((c) {
-                          return DropdownMenuItem(value: c, child: Text(c));
-                        }).toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            setDialogState(() => category = val);
-                          }
-                        },
+                      
+                      // Dynamic Category Field
+                      const Text("Category", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      TextFormField(
+                        controller: categoryCtrl,
+                        decoration: const InputDecoration(hintText: "e.g. Steaks, Breakfast, Cafe"),
+                        validator: (v) => v!.isEmpty ? "Required" : null,
+                        onSaved: (v) => category = v!,
                       ),
-                      if (category == 'Meals') ...[
-                        const SizedBox(height: 16),
-                        const Text("Meal Options (e.g., Meat choices)", style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        ...List.generate(optionGroups.length, (index) {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 8.0),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  flex: 1,
-                                  child: TextFormField(
-                                    initialValue: optionGroups[index]['title'],
-                                    decoration: const InputDecoration(labelText: "Group Title (e.g., Meat)"),
-                                    onChanged: (val) => optionGroups[index]['title'] = val,
-                                  ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: ["Meals", "Drinks", "Specials", "Breakfast"].map((c) => ActionChip(
+                          label: Text(c, style: const TextStyle(fontSize: 12)),
+                          onPressed: () {
+                            setDialogState(() {
+                              categoryCtrl.text = c;
+                            });
+                          },
+                        )).toList(),
+                      ),
+                      const SizedBox(height: 16),
+
+                      const Text("Meal Options (e.g., Meat choices)", style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      ...List.generate(optionGroups.length, (index) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 1,
+                                child: TextFormField(
+                                  initialValue: optionGroups[index]['title'],
+                                  decoration: const InputDecoration(labelText: "Group Title (e.g., Meat)"),
+                                  onChanged: (val) => optionGroups[index]['title'] = val,
                                 ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  flex: 2,
-                                  child: TextFormField(
-                                    initialValue: (optionGroups[index]['options'] as List).join(','),
-                                    decoration: const InputDecoration(labelText: "Options (comma separated)"),
-                                    onChanged: (val) {
-                                      optionGroups[index]['options'] = val.split(',').map((e) => e.trim()).toList();
-                                    },
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.remove_circle, color: Colors.red),
-                                  onPressed: () {
-                                    setDialogState(() => optionGroups.removeAt(index));
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                flex: 2,
+                                child: TextFormField(
+                                  initialValue: (optionGroups[index]['options'] as List).join(','),
+                                  decoration: const InputDecoration(labelText: "Options (comma separated)"),
+                                  onChanged: (val) {
+                                    optionGroups[index]['options'] = val.split(',').map((e) => e.trim()).toList();
                                   },
-                                )
-                              ],
-                            ),
-                          );
-                        }),
-                        if (optionGroups.length < 4)
-                          TextButton.icon(
-                            icon: const Icon(Icons.add),
-                            label: const Text("Add Option Group"),
-                            onPressed: () {
-                              setDialogState(() => optionGroups.add({"title": "", "options": []}));
-                            },
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.remove_circle, color: Colors.red),
+                                onPressed: () {
+                                  setDialogState(() => optionGroups.removeAt(index));
+                                },
+                              )
+                            ],
                           ),
-                      ],
-                      // Legacy custom options field for backwards compatibility or default generic options
-                      if (category != 'Meals')
-                        TextFormField(
-                          decoration: const InputDecoration(
-                            labelText: "Options (comma separated)",
-                            hintText: "e.g., Cold, Hot",
-                          ),
-                          onSaved: (v) => customOptionsString = v ?? "",
+                        );
+                      }),
+                      if (optionGroups.length < 4)
+                        TextButton.icon(
+                          icon: const Icon(Icons.add),
+                          label: const Text("Add Option Group"),
+                          onPressed: () {
+                            setDialogState(() => optionGroups.add({"title": "", "options": []}));
+                          },
                         ),
-                      // NEW: Add-ons (Toppings with Prices) Section
+
+                      TextFormField(
+                        initialValue: customOptionsString,
+                        decoration: const InputDecoration(
+                          labelText: "Basic Options (comma separated)",
+                          hintText: "e.g., Cold, Hot",
+                        ),
+                        onSaved: (v) => customOptionsString = v ?? "",
+                      ),
+                      
                       const SizedBox(height: 16),
                       const Divider(),
                       const SizedBox(height: 8),
@@ -207,39 +241,43 @@ class _MenuManagerTabState extends State<MenuManagerTab> {
                       .where((e) => e.isNotEmpty)
                       .toList();
 
-                  // Cleanup empty option groups before saving
                   final validOptionGroups = optionGroups.where((g) {
                     final title = g['title'] as String;
                     final gOptions = g['options'] as List;
                     return title.isNotEmpty && gOptions.isNotEmpty;
                   }).toList();
 
-                  // Cleanup empty addons
                   final validAddOns = addOns.where((a) {
                     final name = a['name'] as String;
                     return name.isNotEmpty;
                   }).toList();
 
-                  await FirebaseFirestore.instance.collection('products').add(
-                    ProductModel(
-                      id: '', // Firestore auto-generates
-                      businessId: widget.businessId,
-                      name: name,
-                      category: category,
-                      basePrice: basePrice,
-                      description: description,
-                      customOptions: options,
-                      optionGroups: validOptionGroups,
-                      addOns: validAddOns,
-                      imageUrl: base64Image ?? '',
-                      createdAt: DateTime.now(),
-                    ).toMap()
-                  );
+                  final productData = ProductModel(
+                    id: product?.id ?? '', // Auto-generates if new
+                    businessId: widget.businessId,
+                    name: name,
+                    category: category,
+                    basePrice: basePrice,
+                    discountPrice: discountPrice,
+                    description: description,
+                    customOptions: options,
+                    optionGroups: validOptionGroups,
+                    addOns: validAddOns,
+                    imageUrl: base64Image ?? '',
+                    createdAt: product?.createdAt ?? DateTime.now(),
+                    isAvailable: product?.isAvailable ?? true,
+                  ).toMap();
+
+                  if (product == null) {
+                    await FirebaseFirestore.instance.collection('products').add(productData);
+                  } else {
+                    await FirebaseFirestore.instance.collection('products').doc(product.id).update(productData);
+                  }
 
                   if (context.mounted) Navigator.pop(context);
                 }
               },
-              child: const Text("Save Item"),
+              child: Text(product == null ? "Save Item" : "Update Item"),
             ),
           ],
         );
@@ -251,7 +289,7 @@ class _MenuManagerTabState extends State<MenuManagerTab> {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddProductDialog,
+        onPressed: () => _showAddOrEditProductDialog(),
         icon: const Icon(Icons.add),
         label: const Text("Add Item"),
       ),
@@ -300,6 +338,8 @@ class _MenuManagerTabState extends State<MenuManagerTab> {
                         Text("Groups: ${product.optionGroups.length}", style: const TextStyle(fontSize: 12, color: Colors.blue)),
                       if (product.addOns.isNotEmpty)
                         Text("+ ${product.addOns.length} Add-ons", style: const TextStyle(fontSize: 12, color: Colors.deepOrange)),
+                      if (product.discountPrice != null)
+                        Text("Discounted! (MMK ${product.discountPrice!.toStringAsFixed(0)})", style: const TextStyle(fontSize: 12, color: Colors.redAccent, fontWeight: FontWeight.bold)),
                       if (!product.isAvailable)
                         const Text("OUT OF STOCK", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 10)),
                     ],
@@ -315,6 +355,10 @@ class _MenuManagerTabState extends State<MenuManagerTab> {
                             'isAvailable': val,
                           });
                         },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        onPressed: () => _showAddOrEditProductDialog(product: product),
                       ),
                       IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),

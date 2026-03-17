@@ -26,6 +26,8 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
   final Map<String, Map<String, dynamic>> _cart = {};
   double _cartTotal = 0;
   bool _isFavorite = false;
+  List<String> _favoriteProducts = []; // Phase 6: Product Modal Favorites
+  String _selectedCategory = 'All'; // Phase 6: Category Filtering
 
   @override
   void initState() {
@@ -41,8 +43,12 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
     if (doc.exists) {
       final data = doc.data() as Map<String, dynamic>;
       final favorites = List<String>.from(data['favoriteShops'] ?? []);
-      if (favorites.contains(widget.businessId) && mounted) {
-        setState(() => _isFavorite = true);
+      final favProds = List<String>.from(data['favoriteProducts'] ?? []);
+      if (mounted) {
+        setState(() {
+          if (favorites.contains(widget.businessId)) _isFavorite = true;
+          _favoriteProducts = favProds;
+        });
       }
     }
   }
@@ -77,7 +83,8 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
     String cartKey = "${product.id}_${optionsKey}_$addonsKey";
 
     double toppingTotal = selectedAddOns.fold(0.0, (sum, item) => sum + (item['price'] as num).toDouble());
-    double unitPrice = product.basePrice + toppingTotal;
+    double baseAmount = product.discountPrice ?? product.basePrice;
+    double unitPrice = baseAmount + toppingTotal;
 
     setState(() {
       if (_cart.containsKey(cartKey)) {
@@ -264,7 +271,8 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             
-            double currentUnitPrice = product.basePrice + selectedAddOns.fold(0.0, (sum, a) => sum + (a['price'] as num).toDouble());
+            double baseAmount = product.discountPrice ?? product.basePrice;
+            double currentUnitPrice = baseAmount + selectedAddOns.fold(0.0, (sum, a) => sum + (a['price'] as num).toDouble());
             double totalCartPrice = currentUnitPrice * localQty;
 
             return Container(
@@ -334,15 +342,8 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
                               
                               // Badges Row
                               Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  const Icon(Icons.alarm, size: 20, color: Colors.redAccent),
-                                  const SizedBox(width: 4),
-                                  const Text("20 min", style: TextStyle(fontWeight: FontWeight.bold)),
-                                  const SizedBox(width: 20),
-                                  const Icon(Icons.local_fire_department, size: 20, color: Colors.orange),
-                                  const SizedBox(width: 4),
-                                  const Text("320 kcal", style: TextStyle(fontWeight: FontWeight.bold)),
-                                  const Spacer(),
                                   const Icon(Icons.star, size: 24, color: Color(0xFFEAB308)),
                                   const SizedBox(width: 4),
                                   const Text("4.9", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
@@ -445,9 +446,38 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
                   Positioned(
                     top: 20,
                     right: 20,
-                    child: CircleAvatar(
-                      backgroundColor: Colors.white,
-                      child: Icon(Icons.favorite_border, color: Colors.grey.shade400, size: 20),
+                    child: GestureDetector(
+                      onTap: () async {
+                        final user = FirebaseAuth.instance.currentUser;
+                        if (user == null) {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+                          return;
+                        }
+                        final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+                        bool isFav = _favoriteProducts.contains(product.id);
+                        
+                        setModalState(() {
+                          if (isFav) {
+                            _favoriteProducts.remove(product.id);
+                          } else {
+                            _favoriteProducts.add(product.id);
+                          }
+                        });
+                        
+                        if (!isFav) {
+                          await docRef.update({'favoriteProducts': FieldValue.arrayUnion([product.id])});
+                        } else {
+                          await docRef.update({'favoriteProducts': FieldValue.arrayRemove([product.id])});
+                        }
+                      },
+                      child: CircleAvatar(
+                        backgroundColor: Colors.white,
+                        child: Icon(
+                          _favoriteProducts.contains(product.id) ? Icons.favorite_rounded : Icons.favorite_border, 
+                          color: _favoriteProducts.contains(product.id) ? Colors.redAccent : Colors.grey.shade400, 
+                          size: 20
+                        ),
+                      ),
                     ),
                   ),
 
@@ -602,21 +632,72 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
                     if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
                     final docs = snapshot.data!.docs;
+                    
+                    // Extract unique categories dynamically
+                    final Set<String> categories = {'All'};
+                    for (var doc in docs) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      if (data['category'] != null && data['category'] != '') {
+                        categories.add(data['category'] as String);
+                      }
+                    }
+                    final categoryList = categories.toList();
+
+                    // Filter docs based on selected category
+                    final filteredDocs = _selectedCategory == 'All' 
+                        ? docs 
+                        : docs.where((doc) => (doc.data() as Map<String, dynamic>)['category'] == _selectedCategory).toList();
+
                     if (docs.isEmpty) {
                       return const Center(child: Text("Menu is currently empty."));
                     }
 
-                    return GridView.builder(
-                      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 90, top: 10),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 14,
-                        mainAxisSpacing: 14,
-                        childAspectRatio: 0.72,
-                      ),
-                      itemCount: docs.length,
-                      itemBuilder: (context, index) {
-                        final doc = docs[index];
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Dynamic Category Scroller
+                        SizedBox(
+                          height: 50,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: categoryList.length,
+                            itemBuilder: (context, index) {
+                              final cat = categoryList[index];
+                              final isSelected = cat == _selectedCategory;
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: ChoiceChip(
+                                  label: Text(cat, style: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold)),
+                                  selected: isSelected,
+                                  selectedColor: const Color(0xFFFF5E1E),
+                                  backgroundColor: Colors.grey.shade100,
+                                  showCheckmark: false,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide.none),
+                                  onSelected: (val) {
+                                    setState(() => _selectedCategory = cat);
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        // Dynamic Filtered Grid
+                        Expanded(
+                          child: filteredDocs.isEmpty 
+                          ? const Center(child: Text("No items in this category."))
+                          : GridView.builder(
+                              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 90, top: 10),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 14,
+                                mainAxisSpacing: 14,
+                                childAspectRatio: 0.72,
+                              ),
+                              itemCount: filteredDocs.length,
+                              itemBuilder: (context, index) {
+                                final doc = filteredDocs[index];
                         final product = ProductModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
                         
                         int qtyInCart = 0;
@@ -705,11 +786,22 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
                                             ),
                                           ],
                                         ),
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text("MMK ${product.basePrice.toStringAsFixed(0)}", 
-                                                style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.bold, fontSize: 13)),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              product.discountPrice != null
+                                                  ? Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Text("MMK ${product.basePrice.toStringAsFixed(0)}", 
+                                                            style: const TextStyle(color: Colors.grey, decoration: TextDecoration.lineThrough, fontSize: 11)),
+                                                        Text("MMK ${product.discountPrice!.toStringAsFixed(0)}", 
+                                                            style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14)),
+                                                      ],
+                                                    )
+                                                  : Text("MMK ${product.basePrice.toStringAsFixed(0)}", 
+                                                      style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.bold, fontSize: 13)),
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                                               decoration: BoxDecoration(
@@ -723,15 +815,15 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
                                             ),
                                           ],
                                         ),
-                                      ],
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     );
                   },
                 ),
