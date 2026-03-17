@@ -80,7 +80,7 @@ class _MenuManagerTabState extends State<MenuManagerTab> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: TextFormField(
-                              initialValue: discountPrice != null ? discountPrice.toStringAsFixed(0) : '',
+                              initialValue: discountPrice != null ? discountPrice!.toStringAsFixed(0) : '',
                               decoration: const InputDecoration(labelText: "Discount Price (Opt)"),
                               keyboardType: TextInputType.number,
                               onSaved: (v) => discountPrice = (v != null && v.isNotEmpty) ? (double.tryParse(v) ?? 0) : null,

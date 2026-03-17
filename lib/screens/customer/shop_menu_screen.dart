@@ -815,19 +815,22 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
                                             ),
                                           ],
                                         ),
-                                      ),
+                                      ],
                                     ),
                                   ),
-                                ],
-                              ),
+                                ), // Closes Expanded
+                              ], // Closes Column's children
                             ),
-                          );
-                        },
-                      ),
-                    );
-                  },
-                ),
-              ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
             ],
           ),
 
