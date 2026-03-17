@@ -44,7 +44,6 @@ void main() async {
       host: 'firestore.googleapis.com',
       sslEnabled: true,
       ignoreUndefinedProperties: true,
-      experimentalAutoDetectLongPolling: true,
     );
     print("DEBUG: Firestore settings applied (Vercel Fix)");
   } catch (e) {
