@@ -160,13 +160,46 @@ class VendorFleetTab extends StatelessWidget {
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500),
                               ),
-                              trailing: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.end,
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text("THB ${walletBalance.toStringAsFixed(0)}",
-                                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green, fontSize: 13)),
-                                  const Text("wallet", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                  Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text("THB ${walletBalance.toStringAsFixed(0)}",
+                                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green, fontSize: 13)),
+                                      const Text("wallet", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                    ],
+                                  ),
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    icon: const Icon(Icons.cleaning_services_rounded, color: Colors.grey, size: 20),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    tooltip: 'Clear Wallet Balance',
+                                    onPressed: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (_) => AlertDialog(
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                          title: const Text('Reset Rider Wallet?'),
+                                          content: Text('Are you sure you want to permanently reset the wallet balance for ${data['name']} back to 0 THB?'),
+                                          actions: [
+                                            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                              onPressed: () async {
+                                                Navigator.pop(context);
+                                                await FirebaseFirestore.instance.collection('users').doc(doc.id).update({'walletBalance': 0});
+                                              },
+                                              child: const Text('Reset Wallet', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                            ),
+                                          ]
+                                        )
+                                      );
+                                    },
+                                  )
                                 ],
                               ),
                             ),

@@ -5,6 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
+import 'shop_location_picker_screen.dart';
 import '../../services/user_service.dart';
 import '../../services/business_service.dart';
 import '../../services/order_service.dart';
@@ -27,8 +29,39 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   int _currentIndex = 0;
+  bool _isLoading = true;
+  Map<String, dynamic>? _userData;
+  Map<String, dynamic>? _bizData;
   
   late Future<Map<String, dynamic>> _dashboardDataFuture;
+
+  static const Color _kPrimary = Color(0xFFFF5E1E);
+  static const Color _kGold = Color(0xFFEAB308);
+  static const Color _kDark = Color(0xFF1F2937);
+
+  static const List<Map<String, dynamic>> _markerIcons = [
+    {'name': 'store', 'icon': Icons.storefront},
+    {'name': 'coffee', 'icon': Icons.coffee},
+    {'name': 'fastfood', 'icon': Icons.fastfood},
+    {'name': 'local_pizza', 'icon': Icons.local_pizza},
+    {'name': 'bakery_dining', 'icon': Icons.bakery_dining},
+    {'name': 'restaurant', 'icon': Icons.restaurant},
+    {'name': 'local_pharmacy', 'icon': Icons.local_pharmacy},
+    {'name': 'shopping_bag', 'icon': Icons.shopping_bag},
+    {'name': 'cake', 'icon': Icons.cake},
+    {'name': 'icecream', 'icon': Icons.icecream},
+  ];
+
+  static const List<Map<String, dynamic>> _markerColors = [
+    {'name': 'Orange', 'hex': '#FF5E1E', 'color': Color(0xFFFF5E1E)},
+    {'name': 'Red', 'hex': '#EF4444', 'color': Colors.red},
+    {'name': 'Blue', 'hex': '#3B82F6', 'color': Colors.blue},
+    {'name': 'Green', 'hex': '#10B981', 'color': Colors.green},
+    {'name': 'Purple', 'hex': '#8B5CF6', 'color': Colors.purple},
+    {'name': 'Pink', 'hex': '#EC4899', 'color': Colors.pink},
+    {'name': 'Yellow', 'hex': '#F59E0B', 'color': Colors.amber},
+    {'name': 'Dark', 'hex': '#1F2937', 'color': Color(0xFF1F2937)},
+  ];
 
   @override
   void initState() {
@@ -53,10 +86,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     };
   }
 
-  static const Color _kPrimary = Color(0xFFFF5E1E);
-  static const Color _kGold = Color(0xFFEAB308);
-  static const Color _kDark = Color(0xFF1F2937);
-
   String get _currentTabTitle {
     switch (_currentIndex) {
       case 0: return "Live Orders";
@@ -67,6 +96,117 @@ class _AdminDashboardState extends State<AdminDashboard> {
       case 5: return "Fleet";
       default: return "Admin Dashboard";
     }
+  }
+
+  Color _hexToColor(String hex) {
+    hex = hex.replaceAll('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    return Color(int.parse(hex, radix: 16));
+  }
+
+  void _showMarkerCustomizer(String businessId, Map<String, dynamic> bizData) {
+    String currentIcon = bizData['markerIcon'] ?? 'store';
+    String currentColor = bizData['markerColor'] ?? '#FF5E1E';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final activeColor = _hexToColor(currentColor);
+            final activeIconData = _markerIcons.firstWhere((i) => i['name'] == currentIcon, orElse: () => _markerIcons[0])['icon'] as IconData;
+
+            return SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 24, right: 24, top: 24,
+                  bottom: MediaQuery.of(context).padding.bottom + 24,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                  const Text("Customize Map Marker", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _kDark)),
+                  const SizedBox(height: 16),
+                  
+                  // Preview
+                  Center(
+                    child: Container(
+                      width: 80, height: 80,
+                      decoration: BoxDecoration(
+                        color: activeColor, shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 4),
+                        boxShadow: [BoxShadow(color: activeColor.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4))],
+                      ),
+                      child: Icon(activeIconData, color: Colors.white, size: 40),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  const Text("Select Icon", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 12, runSpacing: 12,
+                    children: _markerIcons.map((i) {
+                      bool isSel = i['name'] == currentIcon;
+                      return GestureDetector(
+                        onTap: () => setModalState(() => currentIcon = i['name']),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isSel ? activeColor.withOpacity(0.1) : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: isSel ? activeColor : Colors.transparent, width: 2),
+                          ),
+                          child: Icon(i['icon'], color: isSel ? activeColor : Colors.grey.shade600),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+
+                  const SizedBox(height: 24),
+                  const Text("Select Color", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 12, runSpacing: 12,
+                    children: _markerColors.map((c) {
+                      bool isSel = c['hex'] == currentColor;
+                      return GestureDetector(
+                        onTap: () => setModalState(() => currentColor = c['hex']),
+                        child: Container(
+                          width: 44, height: 44,
+                          decoration: BoxDecoration(
+                            color: c['color'], shape: BoxShape.circle,
+                            border: Border.all(color: isSel ? Colors.black : Colors.transparent, width: 3),
+                          ),
+                          child: isSel ? const Icon(Icons.check, color: Colors.white, size: 20) : null,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity, height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: _kDark, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                      onPressed: () async {
+                        await BusinessService().updateMarkerStyle(businessId, currentIcon, currentColor);
+                        if (mounted) Navigator.pop(context);
+                      },
+                      child: const Text("Save Marker", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                    ),
+                  )
+                ],
+              ),
+            ));
+          }
+        );
+      }
+    );
   }
 
   @override
@@ -795,22 +935,64 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
                 TextButton(
                   onPressed: () async {
-                    try {
-                      final LocationPermission perm = await Geolocator.requestPermission();
-                      if (perm == LocationPermission.whileInUse || perm == LocationPermission.always) {
-                        Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-                        await BusinessService().updateBusinessLocation(businessId, position.latitude, position.longitude);
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Shop Location Updated Successfully!'), backgroundColor: Colors.green));
-                        }
-                      } else {
-                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Permission denied!'), backgroundColor: Colors.red));
+                    LatLng? initLoc;
+                    if (bizData['location'] != null) {
+                      initLoc = LatLng(bizData['location'].latitude, bizData['location'].longitude);
+                    }
+                    final LatLng? picked = await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => ShopLocationPickerScreen(initialLocation: initLoc)),
+                    );
+
+                    if (picked != null) {
+                      await BusinessService().updateBusinessLocation(businessId, picked.latitude, picked.longitude);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Shop Location Updated Successfully!'), backgroundColor: Colors.green));
                       }
-                    } catch (e) {
-                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
                     }
                   },
-                  child: const Text("Sync GPS", style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: const Text("Set on Map", style: TextStyle(fontWeight: FontWeight.bold)),
+                )
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Custom Marker Setup
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.purple.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.purple.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: bizData['markerColor'] != null ? _hexToColor(bizData['markerColor']).withValues(alpha: 0.1) : Colors.purple.withValues(alpha: 0.1), 
+                    shape: BoxShape.circle
+                  ),
+                  child: Icon(
+                    _markerIcons.firstWhere((i) => i['name'] == (bizData['markerIcon'] ?? 'store'), orElse: () => _markerIcons[0])['icon'] as IconData, 
+                    color: bizData['markerColor'] != null ? _hexToColor(bizData['markerColor']) : Colors.purple
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("Map Pin Appearance", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      const SizedBox(height: 4),
+                      Text("Customize how customers see you on the map.", style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    ],
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => _showMarkerCustomizer(businessId, bizData),
+                  child: const Text("Customize", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.purple)),
                 )
               ],
             ),

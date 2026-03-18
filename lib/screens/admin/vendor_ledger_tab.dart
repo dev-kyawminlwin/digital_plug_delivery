@@ -43,13 +43,54 @@ class VendorLedgerTab extends StatelessWidget {
               decoration: const BoxDecoration(
                 color: Color(0xFF10B981), // Green
               ),
-              child: Column(
+              child: Stack(
+                alignment: Alignment.center,
                 children: [
-                  const Text("Gross Revenue", style: TextStyle(color: Colors.white70, fontSize: 16)),
-                  const SizedBox(height: 8),
-                  Text("THB ${totalRevenue.toStringAsFixed(0)}", style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Text("${completedOrders.length} Completed Orders", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                  Column(
+                    children: [
+                      const Text("Gross Revenue", style: TextStyle(color: Colors.white70, fontSize: 16)),
+                      const SizedBox(height: 8),
+                      Text("THB ${totalRevenue.toStringAsFixed(0)}", style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Text("${completedOrders.length} Completed Orders", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: IconButton(
+                      icon: const Icon(Icons.cleaning_services_rounded, color: Colors.white60),
+                      tooltip: 'Clean Revenue Data',
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (_) => AlertDialog(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            title: const Text('Clear Shop Ledger?'),
+                            content: const Text('This will permanently delete all Completed orders for your shop. This action cannot be undone.'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                onPressed: () async {
+                                  Navigator.pop(context);
+                                  final snapshot = await FirebaseFirestore.instance
+                                      .collection('orders')
+                                      .where('businessId', isEqualTo: businessId)
+                                      .where('status', isEqualTo: 'completed')
+                                      .get();
+                                  for (var doc in snapshot.docs) {
+                                    await doc.reference.delete();
+                                  }
+                                },
+                                child: const Text('Clear Data', style: TextStyle(color: Colors.white)),
+                              ),
+                            ]
+                          )
+                        );
+                      },
+                    ),
+                  )
                 ],
               ),
             ),

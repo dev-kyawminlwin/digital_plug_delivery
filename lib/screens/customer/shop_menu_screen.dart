@@ -46,6 +46,14 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
     }
   }
 
+  double _parseOptionPrice(String optionText) {
+    final match = RegExp(r'\[\+?\s*(\d+(?:\.\d+)?)[^\]]*\]').firstMatch(optionText);
+    if (match != null) {
+      return double.tryParse(match.group(1) ?? '0') ?? 0.0;
+    }
+    return 0.0;
+  }
+
   void _checkFavoriteStatus() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -93,9 +101,10 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
     
     String cartKey = "${product.id}_${optionsKey}_$addonsKey";
 
+    double optionTotal = selectedOptions.values.fold(0.0, (sum, text) => sum + _parseOptionPrice(text));
     double toppingTotal = selectedAddOns.fold(0.0, (sum, item) => sum + (item['price'] as num).toDouble());
     double baseAmount = product.discountPrice ?? product.basePrice;
-    double unitPrice = baseAmount + toppingTotal;
+    double unitPrice = baseAmount + optionTotal + toppingTotal;
 
     setState(() {
       if (_cart.containsKey(cartKey)) {
@@ -282,8 +291,9 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             
+            double optionTotal = selectedOptions.values.fold(0.0, (sum, text) => sum + _parseOptionPrice(text));
             double baseAmount = product.discountPrice ?? product.basePrice;
-            double currentUnitPrice = baseAmount + selectedAddOns.fold(0.0, (sum, a) => sum + (a['price'] as num).toDouble());
+            double currentUnitPrice = baseAmount + optionTotal + selectedAddOns.fold(0.0, (sum, a) => sum + (a['price'] as num).toDouble());
             double totalCartPrice = currentUnitPrice * localQty;
 
             return Container(

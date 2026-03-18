@@ -28,4 +28,11 @@ class BusinessService {
       'location': GeoPoint(lat, lng),
     }, SetOptions(merge: true));
   }
+
+  Future<void> updateMarkerStyle(String businessId, String iconName, String colorHex) async {
+    await _db.collection('businesses').doc(businessId).set({
+      'markerIcon': iconName,
+      'markerColor': colorHex,
+    }, SetOptions(merge: true));
+  }
 }

@@ -193,28 +193,64 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [BoxShadow(color: const Color(0xFF6D28D9).withValues(alpha: 0.35), blurRadius: 20, offset: const Offset(0, 8))],
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Stack(
                   children: [
-                    const Text('TOTAL GMV (ALL TIME)', style: TextStyle(color: Colors.white60, fontSize: 11, letterSpacing: 1.2)),
-                    const SizedBox(height: 6),
-                    Text('THB ${gmv.toStringAsFixed(0)}',
-                        style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Text('This Month: THB ${monthlyGmv.toStringAsFixed(0)}',
-                        style: const TextStyle(color: Colors.white70, fontSize: 13)),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        const Icon(Icons.delivery_dining_rounded, color: _kGold, size: 18),
-                        const SizedBox(width: 8),
-                        Text('$total Deliveries Completed',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ]),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('TOTAL GMV (ALL TIME)', style: TextStyle(color: Colors.white60, fontSize: 11, letterSpacing: 1.2)),
+                        const SizedBox(height: 6),
+                        Text('THB ${gmv.toStringAsFixed(0)}',
+                            style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        Text('This Month: THB ${monthlyGmv.toStringAsFixed(0)}',
+                            style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            const Icon(Icons.delivery_dining_rounded, color: _kGold, size: 18),
+                            const SizedBox(width: 8),
+                            Text('$total Deliveries Completed',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          ]),
+                        ),
+                      ],
                     ),
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: IconButton(
+                        icon: const Icon(Icons.cleaning_services_rounded, color: Colors.white54),
+                        tooltip: 'Clean Platform Revenue Data',
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              title: const Text('Reset Platform Revenue?'),
+                              content: const Text('This will permanently delete ALL Completed orders across the entire platform. This action cannot be undone.'),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                  onPressed: () async {
+                                    Navigator.pop(context);
+                                    final snapshot = await FirebaseFirestore.instance.collection('orders').where('status', isEqualTo: 'completed').get();
+                                    for (var doc in snapshot.docs) {
+                                      await doc.reference.delete();
+                                    }
+                                  },
+                                  child: const Text('Delete All', style: TextStyle(color: Colors.white)),
+                                ),
+                              ]
+                            )
+                          );
+                        },
+                      ),
+                    )
                   ],
                 ),
               ),

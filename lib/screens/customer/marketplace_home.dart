@@ -49,9 +49,6 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
         return _buildHomeContent();
     }
   }
-      ),
-    );
-  }
 
   Widget _buildHomeContent() {
     final bottomPad = MediaQuery.of(context).padding.bottom + 96;

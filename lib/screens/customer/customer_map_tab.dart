@@ -18,6 +18,25 @@ class _CustomerMapTabState extends State<CustomerMapTab> {
   LatLng? _currentLocation;
   List<Map<String, dynamic>> _businesses = [];
 
+  static const List<Map<String, dynamic>> _markerIcons = [
+    {'name': 'store', 'icon': Icons.storefront},
+    {'name': 'coffee', 'icon': Icons.coffee},
+    {'name': 'fastfood', 'icon': Icons.fastfood},
+    {'name': 'local_pizza', 'icon': Icons.local_pizza},
+    {'name': 'bakery_dining', 'icon': Icons.bakery_dining},
+    {'name': 'restaurant', 'icon': Icons.restaurant},
+    {'name': 'local_pharmacy', 'icon': Icons.local_pharmacy},
+    {'name': 'shopping_bag', 'icon': Icons.shopping_bag},
+    {'name': 'cake', 'icon': Icons.cake},
+    {'name': 'icecream', 'icon': Icons.icecream},
+  ];
+
+  Color _hexToColor(String hex) {
+    hex = hex.replaceAll('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    return Color(int.parse(hex, radix: 16));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -130,6 +149,11 @@ class _CustomerMapTabState extends State<CustomerMapTab> {
                 // Shops
                 ..._businesses.where((b) => b['location'] != null).map((shop) {
                   GeoPoint geo = shop['location'];
+                  String iconName = shop['markerIcon'] ?? 'store';
+                  String colorHex = shop['markerColor'] ?? '#FF5E1E';
+                  Color markerColor = _hexToColor(colorHex);
+                  IconData markerIcon = _markerIcons.firstWhere((i) => i['name'] == iconName, orElse: () => _markerIcons[0])['icon'] as IconData;
+
                   return Marker(
                     point: LatLng(geo.latitude, geo.longitude),
                     width: 60,
@@ -138,12 +162,12 @@ class _CustomerMapTabState extends State<CustomerMapTab> {
                       onTap: () => _showShopPreview(shop),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFF5E1E),
+                          color: markerColor,
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 3),
-                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))],
+                          boxShadow: [BoxShadow(color: markerColor.withValues(alpha: 0.4), blurRadius: 10, offset: const Offset(0, 4))],
                         ),
-                        child: const Icon(Icons.storefront, color: Colors.white, size: 28),
+                        child: Icon(markerIcon, color: Colors.white, size: 28),
                       ),
                     ),
                   );

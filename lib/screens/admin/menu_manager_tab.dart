@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/product_model.dart';
-import '../../services/image_helper.dart';
+import 'product_editor_screen.dart';
 
 class MenuManagerTab extends StatefulWidget {
   final String businessId;
@@ -13,383 +13,228 @@ class MenuManagerTab extends StatefulWidget {
 }
 
 class _MenuManagerTabState extends State<MenuManagerTab> {
-  void _showAddOrEditProductDialog({ProductModel? product}) {
-    final _formKey = GlobalKey<FormState>();
-    String name = product?.name ?? "";
-    double basePrice = product?.basePrice ?? 0;
-    double? discountPrice = product?.discountPrice;
-    String description = product?.description ?? "";
-    String customOptionsString = product?.customOptions.join(', ') ?? "";
-    String category = product?.category ?? "Meals";
-    String? base64Image = (product?.imageUrl.isNotEmpty == true) ? product!.imageUrl : null;
-    List<Map<String, dynamic>> optionGroups = product != null 
-        ? product.optionGroups.map((g) => Map<String, dynamic>.from(g)).toList() 
-        : [];
-    List<Map<String, dynamic>> addOns = product != null
-        ? product.addOns.map((a) => Map<String, dynamic>.from(a)).toList()
-        : [];
+  String _searchQuery = "";
 
-    final TextEditingController categoryCtrl = TextEditingController(text: category);
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(product == null ? "Add Menu Item" : "Edit Menu Item"),
-          content: Form(
-            key: _formKey,
-            child: SingleChildScrollView(
-              child: StatefulBuilder(
-                builder: (context, setDialogState) {
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (base64Image != null)
-                        const Padding(
-                          padding: EdgeInsets.only(bottom: 8.0),
-                          child: Text("✅ Image Attached", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-                        ),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.image),
-                        label: Text(base64Image == null ? "Attach Image" : "Change Image"),
-                        onPressed: () async {
-                          final b64 = await ImageHelper.pickAndCompressImage();
-                          if (b64 != null) {
-                            setDialogState(() => base64Image = b64);
-                          }
-                        },
-                      ),
-                      TextFormField(
-                        initialValue: name,
-                        decoration: const InputDecoration(labelText: "Product Name"),
-                        validator: (v) => v!.isEmpty ? "Required" : null,
-                        onSaved: (v) => name = v!,
-                      ),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              initialValue: basePrice > 0 ? basePrice.toStringAsFixed(0) : '',
-                              decoration: const InputDecoration(labelText: "Price (THB)"),
-                              keyboardType: TextInputType.number,
-                              validator: (v) => v!.isEmpty ? "Required" : null,
-                              onSaved: (v) => basePrice = double.tryParse(v!) ?? 0,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              initialValue: discountPrice != null ? discountPrice!.toStringAsFixed(0) : '',
-                              decoration: const InputDecoration(labelText: "Discount Price (Opt)"),
-                              keyboardType: TextInputType.number,
-                              onSaved: (v) => discountPrice = (v != null && v.isNotEmpty) ? (double.tryParse(v) ?? 0) : null,
-                            ),
-                          ),
-                        ],
-                      ),
-                      TextFormField(
-                        initialValue: description,
-                        decoration: const InputDecoration(labelText: "Description (Optional)"),
-                        onSaved: (v) => description = v ?? "",
-                      ),
-                      const SizedBox(height: 12),
-                      
-                      // Dynamic Category Field
-                      const Text("Category", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                      TextFormField(
-                        controller: categoryCtrl,
-                        decoration: const InputDecoration(hintText: "e.g. Steaks, Breakfast, Cafe"),
-                        validator: (v) => v!.isEmpty ? "Required" : null,
-                        onSaved: (v) => category = v!,
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        children: ["Meals", "Drinks", "Specials", "Breakfast"].map((c) => ActionChip(
-                          label: Text(c, style: const TextStyle(fontSize: 12)),
-                          onPressed: () {
-                            setDialogState(() {
-                              categoryCtrl.text = c;
-                            });
-                          },
-                        )).toList(),
-                      ),
-                      const SizedBox(height: 16),
-
-                      const Text("Meal Options (e.g., Meat choices)", style: TextStyle(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-                      ...List.generate(optionGroups.length, (index) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 1,
-                                child: TextFormField(
-                                  initialValue: optionGroups[index]['title'],
-                                  decoration: const InputDecoration(labelText: "Group Title (e.g., Meat)"),
-                                  onChanged: (val) => optionGroups[index]['title'] = val,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                flex: 2,
-                                child: TextFormField(
-                                  initialValue: (optionGroups[index]['options'] as List).join(','),
-                                  decoration: const InputDecoration(labelText: "Options (comma separated)"),
-                                  onChanged: (val) {
-                                    optionGroups[index]['options'] = val.split(',').map((e) => e.trim()).toList();
-                                  },
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.remove_circle, color: Colors.red),
-                                onPressed: () {
-                                  setDialogState(() => optionGroups.removeAt(index));
-                                },
-                              )
-                            ],
-                          ),
-                        );
-                      }),
-                      if (optionGroups.length < 4)
-                        TextButton.icon(
-                          icon: const Icon(Icons.add),
-                          label: const Text("Add Option Group"),
-                          onPressed: () {
-                            setDialogState(() => optionGroups.add({"title": "", "options": []}));
-                          },
-                        ),
-
-                      TextFormField(
-                        initialValue: customOptionsString,
-                        decoration: const InputDecoration(
-                          labelText: "Basic Options (comma separated)",
-                          hintText: "e.g., Cold, Hot",
-                        ),
-                        onSaved: (v) => customOptionsString = v ?? "",
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      const Divider(),
-                      const SizedBox(height: 8),
-                      const Text("Custom Add-ons (e.g., Extra Cheese +500) [Optional]", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange)),
-                      const SizedBox(height: 8),
-                      ...List.generate(addOns.length, (index) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 2,
-                                child: TextFormField(
-                                  initialValue: addOns[index]['name'],
-                                  decoration: const InputDecoration(labelText: "Add-on Name"),
-                                  onChanged: (val) => addOns[index]['name'] = val,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                flex: 1,
-                                child: TextFormField(
-                                  initialValue: addOns[index]['price'].toString(),
-                                  decoration: const InputDecoration(labelText: "+Price"),
-                                  keyboardType: TextInputType.number,
-                                  onChanged: (val) {
-                                    addOns[index]['price'] = double.tryParse(val) ?? 0.0;
-                                  },
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.remove_circle, color: Colors.red),
-                                onPressed: () {
-                                  setDialogState(() => addOns.removeAt(index));
-                                },
-                              )
-                            ],
-                          ),
-                        );
-                      }),
-                      TextButton.icon(
-                        icon: const Icon(Icons.add_circle_outline, color: Colors.deepOrange),
-                        label: const Text("Add New Topping", style: TextStyle(color: Colors.deepOrange)),
-                        onPressed: () {
-                          setDialogState(() => addOns.add({"name": "", "price": 0.0}));
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                  );
-                }
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (_formKey.currentState!.validate()) {
-                  _formKey.currentState!.save();
-                  
-                  final List<String> options = customOptionsString
-                      .split(',')
-                      .map((e) => e.trim())
-                      .where((e) => e.isNotEmpty)
-                      .toList();
-
-                  final validOptionGroups = optionGroups.where((g) {
-                    final title = g['title'] as String;
-                    final gOptions = g['options'] as List;
-                    return title.isNotEmpty && gOptions.isNotEmpty;
-                  }).toList();
-
-                  final validAddOns = addOns.where((a) {
-                    final name = a['name'] as String;
-                    return name.isNotEmpty;
-                  }).toList();
-
-                  final productData = ProductModel(
-                    id: product?.id ?? '', // Auto-generates if new
-                    businessId: widget.businessId,
-                    name: name,
-                    category: category,
-                    basePrice: basePrice,
-                    discountPrice: discountPrice,
-                    description: description,
-                    customOptions: options,
-                    optionGroups: validOptionGroups,
-                    addOns: validAddOns,
-                    imageUrl: base64Image ?? '',
-                    createdAt: product?.createdAt ?? DateTime.now(),
-                    isAvailable: product?.isAvailable ?? true,
-                  ).toMap();
-
-                  if (product == null) {
-                    await FirebaseFirestore.instance.collection('products').add(productData);
-                  } else {
-                    await FirebaseFirestore.instance.collection('products').doc(product.id).update(productData);
-                  }
-
-                  if (context.mounted) Navigator.pop(context);
-                }
-              },
-              child: Text(product == null ? "Save Item" : "Update Item"),
-            ),
-          ],
-        );
-      }
-    );
+  void _routeToEditor({ProductModel? product}) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => ProductEditorScreen(businessId: widget.businessId, product: product)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddOrEditProductDialog(),
-        icon: const Icon(Icons.add),
-        label: const Text("Add Item"),
+        onPressed: () => _routeToEditor(),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text("Add Item", style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF1F2937),
+        foregroundColor: Colors.white,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('products')
-            .where('businessId', isEqualTo: widget.businessId)
-            // Note: In production you'd normally order by name or createdAt, 
-            // but that might require building a Firestore Index first.
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+      body: Column(
+        children: [
+          // Sticky Top Search Bar
+          Padding(
+            padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: "Search your menu...",
+                prefixIcon: const Icon(Icons.search_rounded, color: Colors.grey),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.transparent)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.blue.shade100, width: 2)),
+              ),
+              onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
+            ),
+          ),
 
-          final docs = snapshot.data!.docs;
-          if (docs.isEmpty) {
-            return const Center(child: Text("Your menu is empty. Add your first item!"));
-          }
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('products').where('businessId', isEqualTo: widget.businessId).snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-          return ListView.builder(
-            padding: const EdgeInsets.only(bottom: 80, top: 16),
-            itemCount: docs.length,
-            itemBuilder: (context, index) {
-              final doc = docs[index];
-              final product = ProductModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+                final docs = snapshot.data!.docs;
+                if (docs.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.restaurant_menu_rounded, size: 80, color: Colors.grey.shade300),
+                        const SizedBox(height: 16),
+                        Text("Your menu is empty", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey.shade700)),
+                        const SizedBox(height: 8),
+                        Text("Click 'Add Item' below to start selling!", style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
+                      ],
+                    )
+                  );
+                }
 
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: product.isAvailable ? Colors.transparent : Colors.red, width: 2),
+                // Map docs to Models and filter by Search Query
+                List<ProductModel> allProducts = docs.map((doc) => ProductModel.fromMap(doc.data() as Map<String, dynamic>, doc.id)).toList();
+                
+                if (_searchQuery.isNotEmpty) {
+                  allProducts = allProducts.where((p) => p.name.toLowerCase().contains(_searchQuery)).toList();
+                  if (allProducts.isEmpty) {
+                    return Center(child: Text("No items match '$_searchQuery'", style: TextStyle(color: Colors.grey.shade600)));
+                  }
+                }
+
+                // Group by Category
+                Map<String, List<ProductModel>> grouped = {};
+                for (var p in allProducts) {
+                  grouped.putIfAbsent(p.category, () => []).add(p);
+                }
+                final sortedCategories = grouped.keys.toList()..sort();
+
+                return ListView.builder(
+                  padding: const EdgeInsets.only(bottom: 100),
+                  itemCount: sortedCategories.length,
+                  itemBuilder: (context, catIndex) {
+                    final category = sortedCategories[catIndex];
+                    final products = grouped[category]!;
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 8),
+                          child: Row(
+                            children: [
+                              Container(width: 4, height: 16, decoration: BoxDecoration(color: const Color(0xFFFF5E1E), borderRadius: BorderRadius.circular(2))),
+                              const SizedBox(width: 8),
+                              Text(category.toUpperCase(), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.grey.shade600, letterSpacing: 1.2)),
+                              const SizedBox(width: 8),
+                              Text("(${products.length})", style: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.bold, fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                        ...products.map((product) => _buildPremiumProductCard(product)).toList(),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPremiumProductCard(ProductModel product) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: product.isAvailable ? Colors.white : Colors.red.shade50,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: product.isAvailable ? Colors.transparent : Colors.red.shade200, width: 1.5),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 50, height: 50,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [Colors.deepPurple.shade400, Colors.deepPurple.shade700], begin: Alignment.topLeft, end: Alignment.bottomRight),
+              shape: BoxShape.circle,
+              boxShadow: [BoxShadow(color: Colors.deepPurple.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 3))],
+            ),
+            child: const Icon(Icons.fastfood, color: Colors.white, size: 22),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(product.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF1F2937))),
+                const SizedBox(height: 4),
+                Text("THB ${product.basePrice.toStringAsFixed(0)}", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13)),
+                if (product.customOptions.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text("Options: ${product.customOptions.join(', ')}", style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                ],
+                if (product.optionGroups.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text("Groups: ${product.optionGroups.length}", style: const TextStyle(fontSize: 11, color: Colors.blue, fontWeight: FontWeight.w600)),
+                ],
+                if (product.addOns.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text("+ ${product.addOns.length} Add-ons", style: const TextStyle(fontSize: 11, color: Colors.deepOrange, fontWeight: FontWeight.w600)),
+                ],
+                if (product.discountPrice != null) ...[
+                  const SizedBox(height: 2),
+                  Text("Discounted! (THB ${product.discountPrice!.toStringAsFixed(0)})", style: const TextStyle(fontSize: 11, color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                ],
+                if (!product.isAvailable) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(4)),
+                    child: const Text("OUT OF STOCK", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 9)),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Transform.scale(
+                scale: 0.85,
+                child: Switch(
+                  value: product.isAvailable,
+                  activeColor: Colors.white, activeTrackColor: Colors.green,
+                  inactiveThumbColor: Colors.red.shade400, inactiveTrackColor: Colors.red.shade100,
+                  onChanged: (val) {
+                    FirebaseFirestore.instance.collection('products').doc(product.id).update({'isAvailable': val});
+                  },
                 ),
-                child: ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Colors.deepPurple,
-                    child: Icon(Icons.fastfood, color: Colors.white),
+              ),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit_rounded, color: Colors.blue, size: 20),
+                    padding: EdgeInsets.zero, constraints: const BoxConstraints(),
+                    onPressed: () => _routeToEditor(product: product),
                   ),
-                  title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("THB ${product.basePrice.toStringAsFixed(0)}", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-                      if (product.customOptions.isNotEmpty)
-                        Text("Options: ${product.customOptions.join(', ')}", style: const TextStyle(fontSize: 12)),
-                      if (product.optionGroups.isNotEmpty)
-                        Text("Groups: ${product.optionGroups.length}", style: const TextStyle(fontSize: 12, color: Colors.blue)),
-                      if (product.addOns.isNotEmpty)
-                        Text("+ ${product.addOns.length} Add-ons", style: const TextStyle(fontSize: 12, color: Colors.deepOrange)),
-                      if (product.discountPrice != null)
-                        Text("Discounted! (THB ${product.discountPrice!.toStringAsFixed(0)})", style: const TextStyle(fontSize: 12, color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                      if (!product.isAvailable)
-                        const Text("OUT OF STOCK", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 10)),
-                    ],
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Switch(
-                        value: product.isAvailable,
-                        activeTrackColor: Colors.green,
-                        onChanged: (val) {
-                          FirebaseFirestore.instance.collection('products').doc(doc.id).update({
-                            'isAvailable': val,
-                          });
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () => _showAddOrEditProductDialog(product: product),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (c) => AlertDialog(
-                              title: const Text("Delete Menu Item?"),
-                              content: const Text("Are you sure you want to delete this item? This action cannot be undone."),
-                              actions: [
-                                TextButton(onPressed: () => Navigator.pop(c), child: const Text("Cancel")),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                                  onPressed: () {
-                                    FirebaseFirestore.instance.collection('products').doc(doc.id).delete();
-                                    Navigator.pop(c);
-                                  },
-                                  child: const Text("Delete", style: TextStyle(color: Colors.white)),
-                                ),
-                              ],
+                  const SizedBox(width: 12),
+                  IconButton(
+                    icon: const Icon(Icons.delete_rounded, color: Colors.red, size: 20),
+                    padding: EdgeInsets.zero, constraints: const BoxConstraints(),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (c) => AlertDialog(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          title: const Text("Delete Menu Item?", style: TextStyle(fontWeight: FontWeight.bold)),
+                          content: const Text("Are you sure you want to delete this item? This action cannot be undone."),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(c), child: const Text("Cancel")),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                              onPressed: () {
+                                FirebaseFirestore.instance.collection('products').doc(product.id).delete();
+                                Navigator.pop(c);
+                              },
+                              child: const Text("Delete", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                             ),
-                          );
-                        },
-                      ),
-                    ],
+                          ],
+                        ),
+                      );
+                    },
                   ),
-                ),
-              );
-            },
-          );
-        },
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
