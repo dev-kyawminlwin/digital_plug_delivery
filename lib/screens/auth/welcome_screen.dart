@@ -25,7 +25,6 @@ class WelcomeScreen extends StatelessWidget {
                   width: 250,
                   height: 250,
                   decoration: BoxDecoration(
-                    color: Colors.white,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
@@ -56,7 +55,7 @@ class WelcomeScreen extends StatelessWidget {
 
               // Title
               const Text(
-                "Food Delivery Service",
+                "Tachileik Delivery Service",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 28,

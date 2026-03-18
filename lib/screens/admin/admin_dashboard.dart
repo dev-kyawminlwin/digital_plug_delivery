@@ -1,9 +1,14 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
+import '../../services/user_service.dart';
+import '../../services/business_service.dart';
+import '../../services/order_service.dart';
+import '../../services/seed_service.dart';
+import '../shared/app_components.dart';
 import 'menu_manager_tab.dart';
 import 'vendor_ratings_tab.dart';
 import 'vendor_ledger_tab.dart';
@@ -31,21 +36,19 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Future<Map<String, dynamic>> _loadDashboardData() async {
-    final userSnap = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .get();
-    final userData = userSnap.data() as Map<String, dynamic>? ?? {};
-    final businessId = userData['businessId'] as String? ?? '';
-    final adminName = userData['name'] as String? ?? 'Admin';
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return {};
 
-    final bizSnap = await FirebaseFirestore.instance.collection('businesses').doc(businessId).get();
-    final bizData = bizSnap.exists ? bizSnap.data() as Map<String, dynamic> : <String, dynamic>{};
+    final userData = await UserService().getUserData(user.uid);
+    final businessId = userData?['businessId'] as String? ?? '';
+    final adminName = userData?['name'] as String? ?? 'Admin';
+
+    final bizData = await BusinessService().getBusinessData(businessId);
 
     return {
       'businessId': businessId,
       'adminName': adminName,
-      'bizData': bizData,
+      'bizData': bizData ?? {},
     };
   }
 
@@ -96,6 +99,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               backgroundColor: const Color(0xFFF9FAFB),
               body: Column(
                 children: [
+                  _buildSubscriptionBanner(bizData),
                   // Gradient Header
                   Container(
                     decoration: const BoxDecoration(
@@ -295,20 +299,33 @@ class _AdminDashboardState extends State<AdminDashboard> {
           padding: const EdgeInsets.all(16),
           children: [
             _buildAnalyticsHeader(orders),
+            _buildTrendingInsights(businessId),
             const SizedBox(height: 16),
             const Text("Live Orders",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _kDark)),
             const SizedBox(height: 12),
             ...orders.where((o) => o.status != OrderStatus.completed).map((order) => _buildOrderCard(order)).toList(),
-            if (orders.where((o) => o.status != OrderStatus.completed).isEmpty)
+            if (orders.where((o) => o.status != OrderStatus.completed && o.status != OrderStatus.cancelled).isEmpty)
               Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 40),
                   child: Column(
                     children: [
-                      Icon(Icons.check_circle_outline, size: 64, color: Colors.grey.shade300),
-                      const SizedBox(height: 12),
-                      Text("All caught up! No active orders.", style: TextStyle(color: Colors.grey.shade500)),
+                      Icon(Icons.storefront_outlined, size: 64, color: Colors.grey.shade400),
+                      const SizedBox(height: 16),
+                      const Text("No orders yet.", style: TextStyle(color: _kDark, fontWeight: FontWeight.bold, fontSize: 18)),
+                      const SizedBox(height: 8),
+                      Text("Start adding items to your menu to drive sales!", style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                      const SizedBox(height: 20),
+                      PrimaryButton(
+                        label: "Go to Menu Manager",
+                        icon: Icons.restaurant_menu_rounded,
+                        onPressed: () {
+                          setState(() {
+                            _currentIndex = 2; // Jump to Menu tab
+                          });
+                        },
+                      )
                     ],
                   ),
                 ),
@@ -322,22 +339,23 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget _buildAnalyticsHeader(List<OrderModel> orders) {
     final today = DateTime.now();
     final deliveredToday = orders.where((o) =>
-        o.status == OrderStatus.completed && o.createdAt.day == today.day).toList();
+        o.status == OrderStatus.completed && 
+        o.createdAt.year == today.year && 
+        o.createdAt.month == today.month && 
+        o.createdAt.day == today.day).toList();
+        
     final allTimeCompleted = orders.where((o) => o.status == OrderStatus.completed).toList();
-    double todayRevenue = deliveredToday.fold(0, (sum, item) => sum + item.totalPrice + item.deliveryFee);
-    double allTimeRevenue = allTimeCompleted.fold(0, (sum, item) => sum + item.totalPrice + item.deliveryFee);
-    double aov = allTimeCompleted.isEmpty ? 0 : allTimeRevenue / allTimeCompleted.length;
+    
+    double grossRevenue = deliveredToday.fold(0, (sum, item) => sum + item.totalPrice + item.deliveryFee);
+    double riderPayout = deliveredToday.fold(0, (sum, item) => sum + item.deliveryFee);
+    double netEarnings = deliveredToday.fold(0, (sum, item) => sum + item.totalPrice);
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF065F46), Color(0xFF059669)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: const Color(0xFF1F2937),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.green.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 6))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 16, offset: const Offset(0, 6))],
       ),
       child: Column(
         children: [
@@ -347,28 +365,34 @@ class _AdminDashboardState extends State<AdminDashboard> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Today's Revenue", style: TextStyle(color: Colors.white70, fontSize: 12)),
-                  Text("THB ${todayRevenue.toStringAsFixed(0)}",
-                      style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+                  const Text("Gross Revenue", style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text("THB ${grossRevenue.toStringAsFixed(0)}",
+                      style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1)),
                 ],
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text("All-Time", style: TextStyle(color: Colors.white60, fontSize: 11)),
-                  Text("THB ${allTimeRevenue.toStringAsFixed(0)}",
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                  const Text("Rider Payout", style: TextStyle(color: Colors.white60, fontSize: 10)),
+                  Text("- THB ${riderPayout.toStringAsFixed(0)}",
+                      style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 4),
+                  const Text("Net Earnings", style: TextStyle(color: Colors.white60, fontSize: 10)),
+                  Text("THB ${netEarnings.toStringAsFixed(0)}",
+                      style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 15)),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _analyticsChip("Orders", "${orders.length}"),
-              _analyticsChip("Completed", "${allTimeCompleted.length}"),
-              _analyticsChip("Active", "${orders.where((o) => o.status != OrderStatus.completed).length}"),
+              Expanded(child: _analyticsChip("Completed", "${deliveredToday.length}")),
+              const SizedBox(width: 8),
+              Expanded(child: _analyticsChip("Active", "${orders.where((o) => o.status != OrderStatus.completed && o.status != OrderStatus.cancelled).length}")),
+              const SizedBox(width: 8),
+              Expanded(child: _analyticsChip("Orders", "${orders.length}")),
             ],
           ),
         ],
@@ -390,6 +414,140 @@ class _AdminDashboardState extends State<AdminDashboard> {
           Text(label, style: const TextStyle(color: Colors.white60, fontSize: 10)),
         ],
       ),
+    );
+  }
+
+  Widget _buildSubscriptionBanner(Map<String, dynamic> bizData) {
+    if (bizData.isEmpty) return const SizedBox.shrink();
+    
+    final status = bizData['subscriptionStatus'] as String? ?? 'inactive';
+    final sl = bizData['subscriptionEnd'];
+    DateTime? subEnd;
+    if (sl is Timestamp) subEnd = sl.toDate();
+    else if (sl is String) subEnd = DateTime.tryParse(sl);
+
+    if (status != 'active' || subEnd == null) {
+      return Container(
+        color: Colors.red.shade600,
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        child: const Text("⚠️ Subscription Inactive - Please Renew to accept orders.", 
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13), textAlign: TextAlign.center),
+      );
+    }
+    
+    final daysLeft = subEnd.difference(DateTime.now()).inDays;
+    if (daysLeft <= 7) {
+      return Container(
+        color: Colors.orange.shade700,
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        child: Text("⚠️ Plan: Active • Expires in $daysLeft Days", 
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13), textAlign: TextAlign.center),
+      );
+    }
+    
+    return Container(
+      color: Colors.green.shade600,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+      child: Text("✅ Plan: Active • Expires in $daysLeft Days", 
+        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center),
+    );
+  }
+
+  Widget _buildTrendingInsights(String businessId) {
+    // NOTE: This intentionally bypasses OrderService.getOrders because it requires history, 
+    // not just 'live' orders. It could be moved to a BusinessAnalyticsService later.
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('orders')
+          .where('businessId', isEqualTo: businessId)
+          .snapshots(),
+      builder: (context, snap) {
+        if (!snap.hasData) return const SizedBox.shrink();
+        
+        final docs = snap.data!.docs;
+        if (docs.isEmpty) return const SizedBox.shrink();
+
+        // Calculate frequencies
+        final Map<String, int> frequencies = {};
+        final exp = RegExp(r"^\d+x (.*?)(?: \(.*?\))?$", multiLine: true);
+        
+        for (var doc in docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          final summary = data['itemsSummary'] as String? ?? '';
+          final matches = exp.allMatches(summary);
+          for (var m in matches) {
+            final productName = m.group(1)?.trim();
+            if (productName != null && productName.isNotEmpty) {
+              frequencies[productName] = (frequencies[productName] ?? 0) + 1;
+            }
+          }
+        }
+
+        if (frequencies.isEmpty) return const SizedBox.shrink();
+
+        final sorted = frequencies.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+        final top3 = sorted.take(3).toList();
+
+        return Container(
+          margin: const EdgeInsets.only(top: 16),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.orange.shade50, Colors.deepOrange.shade50],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.deepOrange.shade200, width: 1),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.local_fire_department_rounded, color: Colors.deepOrange),
+                  const SizedBox(width: 8),
+                  const Text("🔥 Top Selling Today",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.deepOrange, letterSpacing: -0.5)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                "Your customers love these items! Consider adding a Discount Price to them in your Menu Manager to boost sales even further.",
+                style: TextStyle(fontSize: 13, color: Colors.black87, height: 1.4),
+              ),
+              const SizedBox(height: 16),
+              ...top3.asMap().entries.map((entry) {
+                final rank = entry.key + 1;
+                final food = entry.value;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 24, height: 24,
+                        decoration: const BoxDecoration(color: Colors.deepOrange, shape: BoxShape.circle),
+                        child: Center(child: Text("#$rank", style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text("${food.key}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: _kDark))),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                        child: Text("${food.value} Orders", style: const TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.bold, fontSize: 12)),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -686,276 +844,24 @@ class _AdminDashboardState extends State<AdminDashboard> {
           // TEMPORARY BULK SEED BUTTON FOR PHINGPHA
           if (kDebugMode)
             GestureDetector(
-            onLongPress: () async {
-              // Confirm dialog
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (c) => AlertDialog(
-                  title: const Text('Seed Menu?'),
-                  content: const Text('This will inject 60+ PhingPha drinks into your menu. Proceed?'),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-                    ElevatedButton(onPressed: () => Navigator.pop(c, true), child: const Text('Seed')),
-                  ],
+              onLongPress: () => SeedService.seedPhingPhaMenu(context, businessId),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade400, style: BorderStyle.solid, width: 2),
                 ),
-              );
-
-              if (confirm == true) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Seeding drinks...')));
-                try {
-                  final db = FirebaseFirestore.instance;
-                  final drinks = [
-                    {'name': 'Blue Hawaii Soda / บลูฮาวายโซดา', 'basePrice': 60, 'category': 'Italian Soda'},
-                    {'name': 'Blue Lemon Soda / บลูเลม่อนโซดา', 'basePrice': 60, 'category': 'Italian Soda'},
-                    {'name': 'Blueberry Soda / บลูเบอร์รี่โซดา', 'basePrice': 60, 'category': 'Italian Soda'},
-                    {'name': 'Kiwi Soda / กีวี่โซดา', 'basePrice': 60, 'category': 'Italian Soda'},
-                    {'name': 'Strawberry Soda / สตรอเบอร์รี่โซดา', 'basePrice': 60, 'category': 'Italian Soda'},
-                    {'name': 'Raspberry Soda / ราสเบอร์รี่โซดา', 'basePrice': 60, 'category': 'Italian Soda'},
-                    {'name': 'Passion Fruit Soda / เสาวรสโซดา', 'basePrice': 60, 'category': 'Italian Soda'},
-                    {'name': 'Lychee Soda / ลิ้นจี่โซดา', 'basePrice': 60, 'category': 'Italian Soda'},
-                    {'name': 'Green Apple Soda / แอปเปิ้ลเขียวโซดา', 'basePrice': 60, 'category': 'Italian Soda'},
-                    {'name': 'Lemon Soda / มะนาวโซดา', 'basePrice': 60, 'category': 'Italian Soda'},
-                    {'name': 'Grape Soda / องุ่นโซดา', 'basePrice': 60, 'category': 'Italian Soda'},
-                    {'name': 'Orange Soda / ส้มโซดา', 'basePrice': 60, 'category': 'Italian Soda'},
-                    {'name': 'Pineapple Soda / สับปะรดโซดา', 'basePrice': 60, 'category': 'Italian Soda'},
-                    {'name': 'Honey Lemon Soda / น้ำผึ้งมะนาวโซดา', 'basePrice': 60, 'category': 'Italian Soda'},
-                    {'name': 'Punch Soda / พันซ์โซดา', 'basePrice': 60, 'category': 'Italian Soda'},
-                    {'name': 'Red Syrup Soda / น้ำแดงโซดา', 'basePrice': 60, 'category': 'Italian Soda'},
-
-                    // --- Smoothies (สมูทตี้) 65 THB ---
-                    {'name': 'Kiwi Smoothie / สมูทตี้กีวี่', 'basePrice': 65, 'category': 'Smoothies'},
-                    {'name': 'Blueberry Smoothie / สมูทตี้บลูเบอร์รี่', 'basePrice': 65, 'category': 'Smoothies'},
-                    {'name': 'Strawberry Smoothie / สมูทตี้สตรอเบอร์รี่', 'basePrice': 65, 'category': 'Smoothies'},
-                    {'name': 'Raspberry Smoothie / สมูทตี้ราสเบอร์รี่', 'basePrice': 65, 'category': 'Smoothies'},
-                    {'name': 'Passion Fruit Smoothie / สมูทตี้เสาวรส', 'basePrice': 65, 'category': 'Smoothies'},
-                    {'name': 'Lychee Smoothie / สมูทตี้ลิ้นจี่', 'basePrice': 65, 'category': 'Smoothies'},
-                    {'name': 'Green Apple Smoothie / สมูทตี้แอปเปิ้ลเขียว', 'basePrice': 65, 'category': 'Smoothies'},
-                    {'name': 'Lemon Smoothie / สมูทตี้มะนาว', 'basePrice': 65, 'category': 'Smoothies'},
-                    {'name': 'Yogurt Smoothie / สมูทตี้โยเกิร์ต', 'basePrice': 65, 'category': 'Smoothies'},
-
-                    // --- Coffee with variants ---
-                    {'name': 'Espresso / เอสเปรสโซ่', 'basePrice': 55, 'category': 'Coffee', 'hasVariants': true, 'icedPrice': 65, 'frappePrice': 75},
-                    {'name': 'Americano / อเมริกาโน่', 'basePrice': 55, 'category': 'Coffee', 'hasVariants': true, 'icedPrice': 65, 'frappePrice': 75},
-                    {'name': 'Cappuccino / คาปูชิโน่', 'basePrice': 55, 'category': 'Coffee', 'hasVariants': true, 'icedPrice': 65, 'frappePrice': 75},
-                    {'name': 'Mocha / มอคค่า', 'basePrice': 55, 'category': 'Coffee', 'hasVariants': true, 'icedPrice': 65, 'frappePrice': 75},
-                    {'name': 'Latte / ลาเต้', 'basePrice': 55, 'category': 'Coffee', 'hasVariants': true, 'icedPrice': 65, 'frappePrice': 75},
-                    {'name': 'Honey Coffee / กาแฟน้ำผึ้ง', 'basePrice': 55, 'category': 'Coffee', 'hasVariants': true, 'icedPrice': 65, 'frappePrice': 75},
-                    {'name': 'Black Coffee Honey / กาแฟดำน้ำผึ้ง', 'basePrice': 55, 'category': 'Coffee', 'hasVariants': true, 'icedPrice': 65, 'frappePrice': 75},
-                    {'name': 'Black Coffee Orange / กาแฟดำน้ำส้ม', 'basePrice': 75, 'category': 'Coffee'},
-
-                    // --- Tea ---
-                    {'name': 'Thai Tea / ชาเย็น', 'basePrice': 55, 'category': 'Tea', 'hasVariants': true, 'icedPrice': 60, 'frappePrice': 70},
-                    {'name': 'Green Tea / ชาเขียว', 'basePrice': 55, 'category': 'Tea', 'hasVariants': true, 'icedPrice': 60, 'frappePrice': 70},
-                    {'name': 'Lemon Tea / ชามะนาว', 'basePrice': 50, 'category': 'Tea', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
-                    {'name': 'Honey Lemon Tea / ชาน้ำผึ้งมะนาว', 'basePrice': 50, 'category': 'Tea', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
-                    {'name': 'Apple Tea / ชาแอปเปิ้ล', 'basePrice': 50, 'category': 'Tea', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
-                    {'name': 'Peach Tea / ชาพีช', 'basePrice': 50, 'category': 'Tea', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
-                    {'name': 'Butterfly Pea Honey Lemon / อัญชันน้ำผึ้งมะนาว', 'basePrice': 50, 'category': 'Tea', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
-
-                    // --- Milk ---
-                    {'name': 'Honey Lemon Milk / น้ำผึ้งมะนาว (นม)', 'basePrice': 50, 'category': 'Milk', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
-                    {'name': 'Fresh Milk / นมสด', 'basePrice': 50, 'category': 'Milk', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
-                    {'name': 'Honey Milk / นมน้ำผึ้ง', 'basePrice': 50, 'category': 'Milk', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
-                    {'name': 'Pink Milk (Sala) / นมชมพู', 'basePrice': 50, 'category': 'Milk', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
-                    {'name': 'Green Milk / นมเขียว', 'basePrice': 50, 'category': 'Milk', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
-                    {'name': 'Cocoa / โกโก้', 'basePrice': 50, 'category': 'Milk', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
-                    {'name': 'Matcha Latte / มัทฉะลาเต้', 'basePrice': 65, 'category': 'Milk'},
-                    {'name': 'Caramel Fresh Milk / นมสดคาราเมล', 'basePrice': 50, 'category': 'Milk', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
-                    {'name': 'Banana Milk Frappe / กล้วยหอมนมสดปั่น', 'basePrice': 65, 'category': 'Milk'},
-                    {'name': 'Oreo Milk / นมโอริโอ้', 'basePrice': 65, 'category': 'Milk'},
-                    {'name': 'Butterfly Pea Milk / อัญชันนมสด', 'basePrice': 55, 'category': 'Milk', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
-                    {'name': 'Avocado / อะโวคาโด้', 'basePrice': 65, 'category': 'Milk'},
-                    {'name': 'Coconut Milk / มะพร้าวนมสด', 'basePrice': 65, 'category': 'Milk'},
-                    {'name': 'Coconut Avocado Milk / มะพร้าวอะโวคาโด้นมสด', 'basePrice': 65, 'category': 'Milk'},
-
-                    // --- Bubble Tea (Iced/Frappe usually) ---
-                    {'name': 'Taiwan Milk Tea Bubble / ชานมไต้หวันไข่มุก', 'basePrice': 65, 'category': 'Bubble Tea'},
-                    {'name': 'Matcha Green Tea Bubble / มัทฉะกรีนทีมุก', 'basePrice': 65, 'category': 'Bubble Tea'},
-                    {'name': 'Chocolate Bubble / ช็อกโกแลตมุก', 'basePrice': 65, 'category': 'Bubble Tea'},
-                    {'name': 'Melon Bubble / เมล่อนมุก', 'basePrice': 65, 'category': 'Bubble Tea'},
-                    {'name': 'Strawberry Bubble / สตรอเบอร์รี่มุก', 'basePrice': 65, 'category': 'Bubble Tea'},
-                    {'name': 'Taro Bubble / เผือกมุก', 'basePrice': 65, 'category': 'Bubble Tea'},
-                    {'name': 'Rose Tea Bubble / ชากุหลาบมุก', 'basePrice': 65, 'category': 'Bubble Tea'},
-
-                    // --- Fresh Fruit ---
-                    {'name': 'Mango Smoothie / มะม่วงปั่น', 'basePrice': 85, 'category': 'Fresh Fruit'},
-                    {'name': 'Strawberry Cheesecake / สตรอเบอร์รี่ปั่นชีสเค้ก', 'basePrice': 85, 'category': 'Fresh Fruit'},
-                    {'name': 'Green Tea Red Bean / ชาเขียวปั่นถั่วแดง', 'basePrice': 85, 'category': 'Fresh Fruit'},
-                    {'name': 'Watermelon / น้ำแตงโม', 'basePrice': 65, 'category': 'Fresh Fruit'},
-                    {'name': 'Strawberry Juice / น้ำสตรอเบอร์รี่', 'basePrice': 65, 'category': 'Fresh Fruit'},
-                    {'name': 'Mango / น้ำมะม่วง', 'basePrice': 65, 'category': 'Fresh Fruit'},
-                    {'name': 'Orange Juice / น้ำส้ม', 'basePrice': 65, 'category': 'Fresh Fruit'},
-                    {'name': 'Lemon Juice / น้ำมะนาว', 'basePrice': 50, 'category': 'Fresh Fruit', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
-                    {'name': 'Blueberry Juice / น้ำบลูเบอร์รี่', 'basePrice': 65, 'category': 'Fresh Fruit'},
-                    {'name': 'Kiwi Juice / น้ำกีวี่', 'basePrice': 65, 'category': 'Fresh Fruit'},
-                    {'name': 'Passion Fruit Juice / น้ำเสาวรส', 'basePrice': 65, 'category': 'Fresh Fruit'},
-                    {'name': 'Apple Juice / น้ำแอปเปิ้ล', 'basePrice': 65, 'category': 'Fresh Fruit'},
-                    {'name': 'Lychee Juice / น้ำลิ้นจี่', 'basePrice': 65, 'category': 'Fresh Fruit'},
-                    {'name': 'Carrot Juice / น้ำแครอท', 'basePrice': 65, 'category': 'Fresh Fruit'},
-                    {'name': 'Fresh Coconut / มะพร้าวสด', 'basePrice': 65, 'category': 'Fresh Fruit'},
-                  ];
-
-                  int totalDrinks = drinks.length;
-                  int successCount = 0;
-
-                  for (var drink in drinks) {
-                    List<Map<String, dynamic>> addOns = [];
-                    if (drink['category'] == 'Coffee') {
-                      addOns.add({'name': 'Coffee Shot (เพิ่มช็อต)', 'price': 20.0});
-                    } else if (drink['category'] == 'Bubble Tea') {
-                      addOns.add({'name': 'Extra Pearl (เพิ่มมุก)', 'price': 15.0});
-                    }
-
-                    List<Map<String, dynamic>> optionGroups = [];
-                    if (drink['hasVariants'] == true) {
-                      double iPrice = (drink['icedPrice'] as int).toDouble();
-                      double fPrice = (drink['frappePrice'] as int).toDouble();
-                      optionGroups.add({
-                        'title': 'Serving Style / รูปแบบการเสิร์ฟ',
-                        'options': [
-                          'Hot (ร้อน)',
-                          'Iced (เย็น) [+${(iPrice - (drink['basePrice'] as int)).toStringAsFixed(0)} THB]',
-                          'Frappe (ปั่น) [+${(fPrice - (drink['basePrice'] as int)).toStringAsFixed(0)} THB]'
-                        ]
-                      });
-                    } else if (drink['category'] == 'Fresh Fruit' || drink['category'] == 'Smoothies' || drink['category'] == 'Italian Soda') {
-                      optionGroups.add({
-                        'title': 'Serving Style / รูปแบบการเสิร์ฟ',
-                        'options': ['Frappe (ปั่น) / Iced (เย็น)']
-                      });
-                    }
-
-                    await db.collection('products').add({
-                      'businessId': businessId,
-                      'name': drink['name'],
-                      'description': 'Refreshing ${drink['category']} from PhingPha Cafe',
-                      'basePrice': (drink['basePrice'] as int).toDouble(),
-                      'category': drink['category'],
-                      'imageUrl': '',
-                      'isAvailable': true,
-                      'optionGroups': optionGroups,
-                      'addOns': addOns,
-                      'customOptions': [],
-                      'quantity': 999,
-                      'soldCount': 0,
-                      'createdAt': FieldValue.serverTimestamp(),
-                    });
-                    successCount++;
-                  }
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Successfully seeded $successCount drinks!')));
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-                }
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade400, style: BorderStyle.solid, width: 2),
-              ),
-              child: const Center(
-                child: Text(
-                  "[Long Press to Auto-Seed PhingPha Menu]",
-                  style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold),
+                child: const Center(
+                  child: Text(
+                    "[Long Press to Auto-Seed PhingPha Menu]",
+                    style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ),
-          ),
-          
+            
           const SizedBox(height: 20),
-
-          // 📈 Trending Insights Widget
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('orders')
-                .where('businessId', isEqualTo: businessId)
-                .snapshots(),
-            builder: (context, snap) {
-              if (!snap.hasData) return const SizedBox.shrink();
-              
-              final docs = snap.data!.docs;
-              if (docs.isEmpty) return const SizedBox.shrink();
-
-              // Calculate frequencies
-              final Map<String, int> frequencies = {};
-              final exp = RegExp(r"^\d+x (.*?)(?: \(.*?\))?$", multiLine: true);
-              
-              for (var doc in docs) {
-                final data = doc.data() as Map<String, dynamic>;
-                final summary = data['itemsSummary'] as String? ?? '';
-                final matches = exp.allMatches(summary);
-                for (var m in matches) {
-                  final productName = m.group(1)?.trim();
-                  if (productName != null && productName.isNotEmpty) {
-                    frequencies[productName] = (frequencies[productName] ?? 0) + 1;
-                  }
-                }
-              }
-
-              if (frequencies.isEmpty) return const SizedBox.shrink();
-
-              final sorted = frequencies.entries.toList()
-                ..sort((a, b) => b.value.compareTo(a.value));
-              final top3 = sorted.take(3).toList();
-
-              return Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.orange.shade50, Colors.deepOrange.shade50],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.deepOrange.shade200, width: 1),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.local_fire_department_rounded, color: Colors.deepOrange),
-                        const SizedBox(width: 8),
-                        const Text("🔥 Top Selling Today",
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.deepOrange, letterSpacing: -0.5)),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      "Your customers love these items! Consider adding a Discount Price to them in your Menu Manager to boost sales even further.",
-                      style: TextStyle(fontSize: 13, color: Colors.black87, height: 1.4),
-                    ),
-                    const SizedBox(height: 16),
-                    ...top3.asMap().entries.map((entry) {
-                      final rank = entry.key + 1;
-                      final food = entry.value;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 24, height: 24,
-                              decoration: BoxDecoration(color: Colors.deepOrange, shape: BoxShape.circle),
-                              child: Center(child: Text("#$rank", style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(child: Text("${food.key}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: _kDark))),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                              child: Text("${food.value} Orders", style: const TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.bold, fontSize: 12)),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ],
-                ),
-              );
-            },
-          ),
         ],
       ),
     );
