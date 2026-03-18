@@ -22,4 +22,10 @@ class BusinessService {
     
     return true;
   }
+
+  Future<void> updateBusinessLocation(String businessId, double lat, double lng) async {
+    await _db.collection('businesses').doc(businessId).set({
+      'location': GeoPoint(lat, lng),
+    }, SetOptions(merge: true));
+  }
 }

@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../services/user_service.dart';
 import '../../services/business_service.dart';
 import '../../services/order_service.dart';
@@ -763,6 +764,56 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
               ],
             ],
+          ),
+          const SizedBox(height: 16),
+
+          // Location Setup
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.blue.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), shape: BoxShape.circle),
+                  child: const Icon(Icons.location_on, color: Colors.blue),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("Shop Location Setup", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      const SizedBox(height: 4),
+                      Text(bizData['location'] != null ? "GPS coordinates actively synced." : "Required for Customer Map & Delivery estimation.", style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    ],
+                  ),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    try {
+                      final LocationPermission perm = await Geolocator.requestPermission();
+                      if (perm == LocationPermission.whileInUse || perm == LocationPermission.always) {
+                        Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+                        await BusinessService().updateBusinessLocation(businessId, position.latitude, position.longitude);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Shop Location Updated Successfully!'), backgroundColor: Colors.green));
+                        }
+                      } else {
+                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Permission denied!'), backgroundColor: Colors.red));
+                      }
+                    } catch (e) {
+                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+                    }
+                  },
+                  child: const Text("Sync GPS", style: TextStyle(fontWeight: FontWeight.bold)),
+                )
+              ],
+            ),
           ),
           const SizedBox(height: 20),
 

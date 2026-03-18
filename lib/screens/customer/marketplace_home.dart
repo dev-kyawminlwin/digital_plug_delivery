@@ -7,6 +7,7 @@ import '../auth/login_screen.dart';
 import 'customer_profile_screen.dart';
 import 'customer_order_history_tab.dart';
 import 'customer_wishlist_tab.dart';
+import 'customer_map_tab.dart'; // Added this import
 import '../admin/admin_dashboard.dart';
 import '../rider/rider_home.dart';
 
@@ -39,7 +40,7 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
       case 0:
         return _buildHomeContent();
       case 1:
-        return _buildSearchPlaceholder();
+        return const CustomerMapTab();
       case 2:
         return const CustomerWishlistTab();
       case 3:
@@ -48,16 +49,6 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
         return _buildHomeContent();
     }
   }
-
-  Widget _buildSearchPlaceholder() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.search_rounded, size: 80, color: Colors.grey.shade300),
-          const SizedBox(height: 16),
-          Text("Search coming soon", style: TextStyle(fontSize: 18, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
-        ],
       ),
     );
   }
@@ -632,7 +623,7 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
   Widget _buildFloatingNavBar() {
     const items = [
       (Icons.home_rounded, Icons.home_outlined, "Home"),
-      (Icons.search_rounded, Icons.search, "Search"),
+      (Icons.map_rounded, Icons.map_outlined, "Map"),
       (Icons.favorite_rounded, Icons.favorite_border, "Saved"),
       (Icons.receipt_long_rounded, Icons.receipt_long_outlined, "Orders"),
     ];

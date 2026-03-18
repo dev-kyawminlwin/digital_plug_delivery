@@ -30,7 +30,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final TextEditingController _addressController = TextEditingController();
   String _selectedPaymentMethod = 'Cash';
   bool _isPlacingOrder = false;
-  final double deliveryFee = 2000;
+  double _deliveryFee = 0.0;
+  bool _isLoadingFee = true;
+  double _customerLat = 0.0;
+  double _customerLng = 0.0;
 
   static const Color _kPrimary = Color(0xFFFF5E1E);
   static const Color _kDark = Color(0xFF1F2937);
@@ -39,6 +42,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void initState() {
     super.initState();
     _prefillUserData();
+    _calculateDeliveryFee();
   }
 
   @override
@@ -59,6 +63,52 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         _nameController.text = data['name'] ?? '';
         _phoneController.text = data['phone'] ?? '';
         _addressController.text = data['address'] ?? '';
+      });
+    }
+  }
+
+  Future<void> _calculateDeliveryFee() async {
+    // 1. Fetch shop location and base fee
+    final bizDoc = await FirebaseFirestore.instance.collection('businesses').doc(widget.businessId).get();
+    double baseFee = 20.0; // default base minimum
+    GeoPoint? shopLoc;
+    
+    if (bizDoc.exists && bizDoc.data() != null) {
+      final data = bizDoc.data()!;
+      if (data['deliveryFee'] != null) {
+        baseFee = double.tryParse(data['deliveryFee'].toString()) ?? 20.0;
+      }
+      shopLoc = data['location'];
+    }
+
+    // 2. Fetch customer GPS & compute distance
+    double distKm = 0.0;
+    try {
+      final perm = await Geolocator.requestPermission();
+      if (perm == LocationPermission.whileInUse || perm == LocationPermission.always) {
+        Position pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+        _customerLat = pos.latitude;
+        _customerLng = pos.longitude;
+
+        if (shopLoc != null) {
+          double distanceMeters = Geolocator.distanceBetween(
+             shopLoc.latitude, shopLoc.longitude,
+             pos.latitude, pos.longitude,
+          );
+          distKm = distanceMeters / 1000.0; // Convert to Kilometers
+        }
+      }
+    } catch (e) {
+      // Ignored: Default distance remains 0.0
+    }
+
+    // 3. Compute dynamic fee: Base Fare + Distance Rate (THB 10 per km)
+    double computedFee = baseFee + (distKm * 10.0);
+    
+    if (mounted) {
+      setState(() {
+        _deliveryFee = computedFee;
+        _isLoadingFee = false;
       });
     }
   }
@@ -97,31 +147,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         'phone': _phoneController.text,
         'address': _addressController.text,
         'itemsSummary': orderSummary.trim(),
-        'totalPrice': widget.subtotal + deliveryFee,
-        'deliveryFee': deliveryFee,
+        'totalPrice': widget.subtotal + _deliveryFee,
+        'deliveryFee': _deliveryFee,
         'riderId': '',
         'riderName': '',
         'paymentMethod': _selectedPaymentMethod,
         'status': 'looking_for_rider',
         'createdAt': FieldValue.serverTimestamp(),
-        'customerLat': 0.0,
-        'customerLng': 0.0,
+        'customerLat': _customerLat,
+        'customerLng': _customerLng,
       };
-
-      // Attempt to get location quietly
-      try {
-        bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-        if (serviceEnabled) {
-          LocationPermission permission = await Geolocator.checkPermission();
-          if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
-            Position position = await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.high));
-            orderData['customerLat'] = position.latitude;
-            orderData['customerLng'] = position.longitude;
-          }
-        }
-      } catch (e) {
-        // Silently fail GPS, use default 0.0
-      }
 
       final docRef = await FirebaseFirestore.instance.collection('orders').add(orderData);
 
@@ -254,11 +289,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   const Divider(height: 20),
                   _priceLine("Subtotal", "THB ${widget.subtotal.toStringAsFixed(0)}"),
                   const SizedBox(height: 6),
-                  _priceLine("Delivery Fee", "THB ${deliveryFee.toStringAsFixed(0)}"),
+                  if (_isLoadingFee)
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text("Delivery Fee", style: TextStyle(color: Colors.grey, fontSize: 14)),
+                        SizedBox(height: 14, width: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                      ],
+                    )
+                  else
+                    _priceLine("Delivery Fee", "THB ${_deliveryFee.toStringAsFixed(0)}"),
                   const Divider(height: 16),
                   _priceLine(
                     "Total",
-                    "THB ${(widget.subtotal + deliveryFee).toStringAsFixed(0)}",
+                    "THB ${(widget.subtotal + _deliveryFee).toStringAsFixed(0)}",
                     isBold: true,
                     valueColor: Colors.green,
                   ),
