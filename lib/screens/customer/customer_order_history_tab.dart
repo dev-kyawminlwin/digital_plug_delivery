@@ -201,7 +201,7 @@ class _CustomerOrderHistoryTabState extends State<CustomerOrderHistoryTab> {
                 itemBuilder: (context, index) {
                   final data = docs[index].data() as Map<String, dynamic>;
                   final order = OrderModel.fromMap(data, docs[index].id);
-                  final bool isCompleted = order.status == 'completed';
+                  final bool isCompleted = order.status == OrderStatus.completed;
                   final hasRated = data.containsKey('rating');
                   final statusColor = OrderModel.getStatusColor(order.status);
 
@@ -238,7 +238,7 @@ class _CustomerOrderHistoryTabState extends State<CustomerOrderHistoryTab> {
                                   boxShadow: [BoxShadow(color: statusColor.withValues(alpha: 0.2), blurRadius: 4)]
                                 ),
                                 child: Text(
-                                  order.status.toUpperCase().replaceAll('_', ' '),
+                                  order.status.displayName,
                                   style: TextStyle(
                                       color: statusColor, fontSize: 11, fontWeight: FontWeight.w900),
                                 ),
@@ -337,7 +337,7 @@ class _CustomerOrderHistoryTabState extends State<CustomerOrderHistoryTab> {
                                             style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFFD97706))),
                                       ],
                                     )
-                                  else if (!isCompleted && order.status != 'cancelled')
+                                  else if (!isCompleted && order.status != OrderStatus.cancelled)
                                     ElevatedButton.icon(
                                       icon: const Icon(Icons.map_rounded, size: 16),
                                       label: const Text("Track", style: TextStyle(fontWeight: FontWeight.bold)),

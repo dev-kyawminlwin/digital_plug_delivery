@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/auth_service.dart';
+import '../../services/user_service.dart';
+import '../../services/business_service.dart';
+import '../shared/app_components.dart';
 import '../../main.dart';
 import '../admin/admin_dashboard.dart';
 import '../rider/rider_home.dart';
@@ -42,6 +44,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     super.dispose();
   }
 
+  final _authService = AuthService();
+  final _userService = UserService();
+  final _businessService = BusinessService();
+
   Future<void> login() async {
     final email = emailController.text.trim();
     final pass = passwordController.text.trim();
@@ -52,46 +58,31 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     setState(() => isLoading = true);
 
     try {
-      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: pass,
-      );
+      final credential = await _authService.loginUser(email: email, password: pass);
 
       if (!mounted) return;
 
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(credential.user!.uid)
-          .get();
+      final userData = await _userService.getUserData(credential.user!.uid);
 
       if (!mounted) return;
 
-      if (!doc.exists) {
-        await FirebaseFirestore.instance.collection('users').doc(credential.user!.uid).set({
-          'name': 'Master Admin',
-          'email': email,
-          'role': 'super_admin',
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-        
-        if (mounted) {
-           Navigator.of(context).popUntil((route) => route.isFirst);
-        }
+      if (userData == null) {
+        await _userService.createSuperAdmin(credential.user!.uid, email);
+        if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
         return;
       }
 
-      final role = (doc.data()?['role'] as String?)?.trim();
-      final businessId = doc.data()?['businessId'];
+      final role = (userData['role'] as String?)?.trim();
+      final businessId = userData['businessId'];
 
       if (mounted) {
         if (role == 'admin') {
           if (businessId == null) throw "No business ID linked to this admin.";
-          final bizDoc = await FirebaseFirestore.instance.collection('businesses').doc(businessId).get();
-          if (!bizDoc.exists) throw "Business record not found.";
-          final status = bizDoc.data()?['subscriptionStatus'] ?? 'inactive';
-          final dynamic sl = bizDoc.data()?['subscriptionEnd'];
-          final subEnd = sl is Timestamp ? sl.toDate() : (sl is String ? DateTime.tryParse(sl) : null);
-          if (status != 'active' || (subEnd != null && subEnd.isBefore(DateTime.now()))) {
+          final bizData = await _businessService.getBusinessData(businessId);
+          if (bizData == null) throw "Business record not found.";
+          
+          final isActive = _businessService.isSubscriptionActive(bizData);
+          if (!isActive) {
             Navigator.pushReplacementNamed(context, '/subscription_expired');
             return;
           }
@@ -101,13 +92,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           Navigator.of(context).popUntil((route) => route.isFirst);
           return;
         } else {
-          await FirebaseAuth.instance.signOut();
+          await _authService.logout();
           _showError("Unrecognized user role: $role");
         }
       }
-    } on FirebaseAuthException catch (e) {
-      _showError("Firebase Auth Error: ${e.message ?? e.code}");
     } catch (e) {
+      // General catch block (Firebase exceptions will be thrown from the service)
       _showError("Error: ${e.toString()}");
     } finally {
       if (mounted) setState(() => isLoading = false);
@@ -234,23 +224,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   
                   const SizedBox(height: 32),
 
-                  // Login Button
-                  ElevatedButton(
-                    onPressed: isLoading ? null : login,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF5E1E),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      elevation: 8,
-                      shadowColor: const Color(0xFFFF5E1E).withValues(alpha: 0.4),
-                    ),
-                    child: isLoading
-                        ? const SizedBox(
-                            height: 24, width: 24,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-                          )
-                        : const Text("Login", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  // Reusable Login Button Architecture
+                  PrimaryButton(
+                    label: "Login",
+                    onPressed: login,
+                    isLoading: isLoading,
                   ),
                   
                   const SizedBox(height: 48),

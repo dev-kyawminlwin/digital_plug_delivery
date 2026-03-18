@@ -16,24 +16,24 @@ class TrackOrderScreen extends StatefulWidget {
 class _TrackOrderScreenState extends State<TrackOrderScreen> {
   final MapController _mapController = MapController();
 
-  String _getDynamicETA(String status) {
+  String _getDynamicETA(OrderStatus status) {
     switch (status) {
-      case 'looking_for_rider': return "~20-30 min";
-      case 'assigned': return "~15-20 min";
-      case 'picked_up': return "~5-10 min";
-      case 'arrived': return "Arriving Now!";
-      case 'completed': return "Delivered";
+      case OrderStatus.lookingForRider: return "~20-30 min";
+      case OrderStatus.assigned: return "~15-20 min";
+      case OrderStatus.pickedUp: return "~5-10 min";
+      case OrderStatus.arrived: return "Arriving Now!";
+      case OrderStatus.completed: return "Delivered";
       default: return "--";
     }
   }
 
-  String _getDynamicStatusLabel(String status) {
+  String _getDynamicStatusLabel(OrderStatus status) {
     switch (status) {
-      case 'looking_for_rider': return "Finding a Rider for you";
-      case 'assigned': return "Rider is heading to Shop";
-      case 'picked_up': return "Order is on the way!";
-      case 'arrived': return "Rider has arrived!";
-      case 'completed': return "Enjoy your meal!";
+      case OrderStatus.lookingForRider: return "Finding a Rider for you";
+      case OrderStatus.assigned: return "Rider is heading to Shop";
+      case OrderStatus.pickedUp: return "Order is on the way!";
+      case OrderStatus.arrived: return "Rider has arrived!";
+      case OrderStatus.completed: return "Enjoy your meal!";
       default: return "Processing...";
     }
   }
@@ -113,7 +113,7 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: order.status == 'completed' 
+                            colors: order.status == OrderStatus.completed 
                               ? [Colors.green.shade500, Colors.green.shade700]
                               : [const Color(0xFFFF5E1E), const Color(0xFFD94A1A)], // Vibrant Orange
                             begin: Alignment.topLeft,
@@ -122,7 +122,7 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: (order.status == 'completed' ? Colors.green : const Color(0xFFFF5E1E)).withValues(alpha: 0.3),
+                              color: (order.status == OrderStatus.completed ? Colors.green : const Color(0xFFFF5E1E)).withValues(alpha: 0.3),
                               blurRadius: 15,
                               offset: const Offset(0, 8),
                             )
@@ -137,7 +137,7 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
-                                order.status == 'completed' ? Icons.check_circle_rounded : Icons.local_shipping_rounded,
+                                order.status == OrderStatus.completed ? Icons.check_circle_rounded : Icons.local_shipping_rounded,
                                 color: Colors.white,
                                 size: 28,
                               ),
@@ -148,7 +148,7 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    _getDynamicStatusLabel(order.status).toUpperCase(),
+                                    order.status.displayName,
                                     style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
                                   ),
                                   const SizedBox(height: 4),

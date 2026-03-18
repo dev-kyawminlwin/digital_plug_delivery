@@ -281,17 +281,17 @@ class AuthService {
     }
   }
 
-  Future<void> loginCustomer({
+  Future<UserCredential> loginUser({
     required String email,
     required String password,
   }) async {
     try {
-      await _auth.signInWithEmailAndPassword(
+      return await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
     } catch (e) {
-      print("Customer Login Error: $e");
+      print("Login Error: $e");
       rethrow;
     }
   }

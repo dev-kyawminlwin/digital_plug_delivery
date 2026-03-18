@@ -440,7 +440,7 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                               color: statusColor.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: Text(order.status.toUpperCase().replaceAll('_', ' '),
+                            child: Text(order.status.displayName,
                                 style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 10)),
                           ),
                         ],
@@ -510,9 +510,9 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
 
   Widget _buildActionButton(OrderModel order) {
     final stages = {
-      'assigned': ('PICK UP', Colors.blue),
-      'picked_up': ('I\'VE ARRIVED', Colors.deepPurple),
-      'arrived': ('COMPLETE ✓', _kPrimary),
+      OrderStatus.assigned: ('PICK UP', Colors.blue),
+      OrderStatus.pickedUp: ('I\'VE ARRIVED', Colors.deepPurple),
+      OrderStatus.arrived: ('COMPLETE ✓', _kPrimary),
     };
     final stage = stages[order.status];
     if (stage == null) return const SizedBox.shrink();
@@ -520,9 +520,9 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
     return ElevatedButton(
       onPressed: () {
         final nextStatus = {
-          'assigned': 'picked_up',
-          'picked_up': 'arrived',
-          'arrived': 'completed',
+          OrderStatus.assigned: OrderStatus.pickedUp,
+          OrderStatus.pickedUp: OrderStatus.arrived,
+          OrderStatus.arrived: OrderStatus.completed,
         }[order.status]!;
         _orderService.updateStatus(order, nextStatus);
       },

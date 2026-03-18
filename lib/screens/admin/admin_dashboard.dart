@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'menu_manager_tab.dart';
 import 'vendor_ratings_tab.dart';
 import 'vendor_ledger_tab.dart';
@@ -136,15 +137,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                   stream: FirebaseFirestore.instance
                                       .collection('orders')
                                       .where('businessId', isEqualTo: businessId)
+                                      .where('status', isNotEqualTo: 'completed')
                                       .snapshots(),
                                   builder: (context, snap) {
                                     if (!snap.hasData) return const SizedBox.shrink();
                                     
-                                    // Filter locally to avoid requiring composite indexes
-                                    final liveDocs = snap.data!.docs.where((doc) {
-                                      final data = doc.data() as Map<String, dynamic>;
-                                      return data['status'] != 'completed';
-                                    }).toList();
+                                    final liveDocs = snap.data!.docs;
                                     
                                     final count = liveDocs.length;
                                     if (count == 0) return const SizedBox.shrink();
@@ -301,8 +299,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
             const Text("Live Orders",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _kDark)),
             const SizedBox(height: 12),
-            ...orders.where((o) => o.status != 'completed').map((order) => _buildOrderCard(order)).toList(),
-            if (orders.where((o) => o.status != 'completed').isEmpty)
+            ...orders.where((o) => o.status != OrderStatus.completed).map((order) => _buildOrderCard(order)).toList(),
+            if (orders.where((o) => o.status != OrderStatus.completed).isEmpty)
               Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 40),
@@ -324,8 +322,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget _buildAnalyticsHeader(List<OrderModel> orders) {
     final today = DateTime.now();
     final deliveredToday = orders.where((o) =>
-        o.status == 'completed' && o.createdAt.day == today.day).toList();
-    final allTimeCompleted = orders.where((o) => o.status == 'completed').toList();
+        o.status == OrderStatus.completed && o.createdAt.day == today.day).toList();
+    final allTimeCompleted = orders.where((o) => o.status == OrderStatus.completed).toList();
     double todayRevenue = deliveredToday.fold(0, (sum, item) => sum + item.totalPrice + item.deliveryFee);
     double allTimeRevenue = allTimeCompleted.fold(0, (sum, item) => sum + item.totalPrice + item.deliveryFee);
     double aov = allTimeCompleted.isEmpty ? 0 : allTimeRevenue / allTimeCompleted.length;
@@ -368,9 +366,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _analyticsChip("Delivered Today", "${deliveredToday.length}"),
-              _analyticsChip("Active Orders", "${orders.where((o) => o.status != 'completed').length}"),
-              _analyticsChip("Avg Order", "THB ${aov.toStringAsFixed(0)}"),
+              _analyticsChip("Orders", "${orders.length}"),
+              _analyticsChip("Completed", "${allTimeCompleted.length}"),
+              _analyticsChip("Active", "${orders.where((o) => o.status != OrderStatus.completed).length}"),
             ],
           ),
         ],
@@ -424,7 +422,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    order.status.toUpperCase().replaceAll('_', ' '),
+                    order.status.displayName,
                     style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 11),
                   ),
                 ),
@@ -686,7 +684,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
           const SizedBox(height: 20),
 
           // TEMPORARY BULK SEED BUTTON FOR PHINGPHA
-          GestureDetector(
+          if (kDebugMode)
+            GestureDetector(
             onLongPress: () async {
               // Confirm dialog
               final confirm = await showDialog<bool>(
@@ -917,10 +916,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.trending_up_rounded, color: Colors.deepOrange),
+                        const Icon(Icons.local_fire_department_rounded, color: Colors.deepOrange),
                         const SizedBox(width: 8),
-                        const Text("TRENDING INSIGHTS",
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.deepOrange, letterSpacing: 0.8)),
+                        const Text("🔥 Top Selling Today",
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.deepOrange, letterSpacing: -0.5)),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -942,7 +941,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                               child: Center(child: Text("#$rank", style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))),
                             ),
                             const SizedBox(width: 12),
-                            Expanded(child: Text(food.key, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: _kDark))),
+                            Expanded(child: Text("${food.key}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: _kDark))),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),

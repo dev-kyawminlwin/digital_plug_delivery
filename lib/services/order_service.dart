@@ -69,19 +69,19 @@ class OrderService {
     });
   }
 
-  // Global: Update status (assigned -> picked_up -> arrived -> completed)
-  Future<void> updateStatus(OrderModel order, String newStatus) async {
+  // Global: Update status
+  Future<void> updateStatus(OrderModel order, OrderStatus newStatus) async {
     final orderRef = _orders.doc(order.id);
 
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       // 1. Update the order document
       transaction.update(orderRef, {
-        'status': newStatus,
+        'status': newStatus.value,
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
       // 2. If completed, reward the rider AND the customer
-      if (newStatus == 'completed') {
+      if (newStatus == OrderStatus.completed) {
         // Reward Rider
         if (order.assignedRider.isNotEmpty) {
           final riderRef = FirebaseFirestore.instance.collection('users').doc(order.assignedRider);

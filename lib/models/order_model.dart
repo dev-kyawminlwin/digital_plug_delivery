@@ -1,17 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+enum OrderStatus {
+  lookingForRider,
+  assigned,
+  pickedUp,
+  arrived,
+  completed,
+  cancelled
+}
+
+extension OrderStatusExt on OrderStatus {
+  String get value {
+    switch (this) {
+      case OrderStatus.lookingForRider: return 'looking_for_rider';
+      case OrderStatus.assigned: return 'assigned';
+      case OrderStatus.pickedUp: return 'picked_up';
+      case OrderStatus.arrived: return 'arrived';
+      case OrderStatus.completed: return 'completed';
+      case OrderStatus.cancelled: return 'cancelled';
+    }
+  }
+
+  String get displayName => value.toUpperCase().replaceAll('_', ' ');
+
+  static OrderStatus fromString(String status) {
+    switch (status.toLowerCase()) {
+      case 'looking_for_rider': return OrderStatus.lookingForRider;
+      case 'assigned': return OrderStatus.assigned;
+      case 'picked_up': return OrderStatus.pickedUp;
+      case 'arrived': return OrderStatus.arrived;
+      case 'completed': return OrderStatus.completed;
+      case 'cancelled': return OrderStatus.cancelled;
+      default: return OrderStatus.lookingForRider;
+    }
+  }
+}
+
 class OrderModel {
   // 1. Static Logic for UI colors
-  static Color getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'assigned':
+  static Color getStatusColor(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.assigned:
         return Colors.orange;
-      case 'picked_up':
+      case OrderStatus.pickedUp:
         return Colors.blue;
-      case 'arrived':
+      case OrderStatus.arrived:
         return Colors.deepPurple;
-      case 'completed':
+      case OrderStatus.completed:
         return Colors.green;
       default:
         return Colors.grey;
@@ -27,7 +63,7 @@ class OrderModel {
   final String address;
   final double totalPrice;
   final double deliveryFee;
-  final String status;
+  final OrderStatus status;
   final String assignedRider;
   final String riderId; // Phase 9: Broadcast matching
   final String riderName; // Phase 9: Show assigned rider name to customer
@@ -70,7 +106,7 @@ class OrderModel {
       address: map['address'] ?? '',
       totalPrice: (map['totalPrice'] as num).toDouble(),
       deliveryFee: (map['deliveryFee'] as num).toDouble(),
-      status: map['status'] ?? 'assigned',
+      status: OrderStatusExt.fromString(map['status'] ?? 'looking_for_rider'),
       assignedRider: map['assignedRider'] ?? '',
       riderId: map['riderId'] ?? '',
       riderName: map['riderName'] ?? 'Rider',
@@ -95,7 +131,7 @@ class OrderModel {
       'address': address,
       'totalPrice': totalPrice,
       'deliveryFee': deliveryFee,
-      'status': status,
+      'status': status.value,
       'assignedRider': assignedRider,
       'riderId': riderId,
       'riderName': riderName,
