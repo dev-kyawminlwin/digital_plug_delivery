@@ -13,7 +13,7 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
   final _auth = FirebaseAuth.instance;
   final _db = FirebaseFirestore.instance;
 
-  static const Color _kPrimary = Color(0xFF1E3A8A);
+  static const Color _kPrimary = Color(0xFFFF5E1E);
   static const Color _kGold = Color(0xFFEAB308);
   static const Color _kDark = Color(0xFF1F2937);
 
@@ -78,7 +78,7 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                         gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+                          colors: [Color(0xFFFF5E1E), Color(0xFFD94A1A)],
                         ),
                       ),
                       child: Stack(

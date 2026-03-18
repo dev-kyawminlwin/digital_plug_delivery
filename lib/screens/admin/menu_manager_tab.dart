@@ -71,7 +71,7 @@ class _MenuManagerTabState extends State<MenuManagerTab> {
                           Expanded(
                             child: TextFormField(
                               initialValue: basePrice > 0 ? basePrice.toStringAsFixed(0) : '',
-                              decoration: const InputDecoration(labelText: "Price (MMK)"),
+                              decoration: const InputDecoration(labelText: "Price (THB)"),
                               keyboardType: TextInputType.number,
                               validator: (v) => v!.isEmpty ? "Required" : null,
                               onSaved: (v) => basePrice = double.tryParse(v!) ?? 0,
@@ -331,7 +331,7 @@ class _MenuManagerTabState extends State<MenuManagerTab> {
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("MMK ${product.basePrice.toStringAsFixed(0)}", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                      Text("THB ${product.basePrice.toStringAsFixed(0)}", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
                       if (product.customOptions.isNotEmpty)
                         Text("Options: ${product.customOptions.join(', ')}", style: const TextStyle(fontSize: 12)),
                       if (product.optionGroups.isNotEmpty)
@@ -339,7 +339,7 @@ class _MenuManagerTabState extends State<MenuManagerTab> {
                       if (product.addOns.isNotEmpty)
                         Text("+ ${product.addOns.length} Add-ons", style: const TextStyle(fontSize: 12, color: Colors.deepOrange)),
                       if (product.discountPrice != null)
-                        Text("Discounted! (MMK ${product.discountPrice!.toStringAsFixed(0)})", style: const TextStyle(fontSize: 12, color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                        Text("Discounted! (THB ${product.discountPrice!.toStringAsFixed(0)})", style: const TextStyle(fontSize: 12, color: Colors.redAccent, fontWeight: FontWeight.bold)),
                       if (!product.isAvailable)
                         const Text("OUT OF STOCK", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 10)),
                     ],

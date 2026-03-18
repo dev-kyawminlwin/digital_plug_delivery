@@ -6,7 +6,7 @@ class VendorFleetTab extends StatelessWidget {
 
   const VendorFleetTab({super.key, required this.businessId});
 
-  static const Color _kPrimary = Color(0xFF1E3A8A);
+  static const Color _kPrimary = Color(0xFFFF5E1E);
   static const Color _kDark = Color(0xFF1F2937);
 
   Future<void> _hireRiderForDay(BuildContext context, String riderId, String riderName) async {
@@ -164,7 +164,7 @@ class VendorFleetTab extends StatelessWidget {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  Text("MMK ${walletBalance.toStringAsFixed(0)}",
+                                  Text("THB ${walletBalance.toStringAsFixed(0)}",
                                       style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green, fontSize: 13)),
                                   const Text("wallet", style: TextStyle(fontSize: 10, color: Colors.grey)),
                                 ],

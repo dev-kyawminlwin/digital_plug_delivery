@@ -97,7 +97,7 @@ class OrderService {
           transaction.update(riderRef, riderUpdates);
         }
 
-        // Reward Customer with Gamified Points (e.g. 50 points for 5000 MMK order)
+        // Reward Customer with Gamified Points (e.g. 50 points for 5000 THB order)
         if (order.customerId.isNotEmpty) {
           final customerRef = FirebaseFirestore.instance.collection('users').doc(order.customerId);
           int pointsEarned = (order.totalPrice / 100).floor();

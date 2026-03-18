@@ -48,7 +48,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     };
   }
 
-  static const Color _kPrimary = Color(0xFF1E3A8A);
+  static const Color _kPrimary = Color(0xFFFF5E1E);
   static const Color _kGold = Color(0xFFEAB308);
   static const Color _kDark = Color(0xFF1F2937);
 
@@ -101,7 +101,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+                        colors: [Color(0xFFFF5E1E), Color(0xFFD94A1A)],
                       ),
                     ),
                     child: SafeArea(
@@ -350,7 +350,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text("Today's Revenue", style: TextStyle(color: Colors.white70, fontSize: 12)),
-                  Text("MMK ${todayRevenue.toStringAsFixed(0)}",
+                  Text("THB ${todayRevenue.toStringAsFixed(0)}",
                       style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
                 ],
               ),
@@ -358,7 +358,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   const Text("All-Time", style: TextStyle(color: Colors.white60, fontSize: 11)),
-                  Text("MMK ${allTimeRevenue.toStringAsFixed(0)}",
+                  Text("THB ${allTimeRevenue.toStringAsFixed(0)}",
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
                 ],
               ),
@@ -370,7 +370,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             children: [
               _analyticsChip("Delivered Today", "${deliveredToday.length}"),
               _analyticsChip("Active Orders", "${orders.where((o) => o.status != 'completed').length}"),
-              _analyticsChip("Avg Order", "MMK ${aov.toStringAsFixed(0)}"),
+              _analyticsChip("Avg Order", "THB ${aov.toStringAsFixed(0)}"),
             ],
           ),
         ],
@@ -470,7 +470,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "MMK ${(order.totalPrice + order.deliveryFee).toStringAsFixed(0)} • ${order.paymentMethod}",
+                      "THB ${(order.totalPrice + order.deliveryFee).toStringAsFixed(0)} • ${order.paymentMethod}",
                       style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green, fontSize: 14),
                     ),
                     if (order.riderId.isEmpty)
@@ -602,7 +602,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     color: Colors.orange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Text("Delivery: MMK ${bizData['deliveryFee']}",
+                  child: Text("Delivery: THB ${bizData['deliveryFee']}",
                       style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12)),
                 ),
               ],
@@ -665,7 +665,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                     style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                               ],
                             ),
-                            Text("MMK ${(d['basePrice'] ?? 0).toStringAsFixed(0)}",
+                            Text("THB ${(d['basePrice'] ?? 0).toStringAsFixed(0)}",
                                 style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13)),
                           ],
                         ),
@@ -681,6 +681,188 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
               );
             },
+          ),
+          
+          const SizedBox(height: 20),
+
+          // TEMPORARY BULK SEED BUTTON FOR PHINGPHA
+          GestureDetector(
+            onLongPress: () async {
+              // Confirm dialog
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (c) => AlertDialog(
+                  title: const Text('Seed Menu?'),
+                  content: const Text('This will inject 60+ PhingPha drinks into your menu. Proceed?'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+                    ElevatedButton(onPressed: () => Navigator.pop(c, true), child: const Text('Seed')),
+                  ],
+                ),
+              );
+
+              if (confirm == true) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Seeding drinks...')));
+                try {
+                  final db = FirebaseFirestore.instance;
+                  final drinks = [
+                    {'name': 'Blue Hawaii Soda / บลูฮาวายโซดา', 'basePrice': 60, 'category': 'Italian Soda'},
+                    {'name': 'Blue Lemon Soda / บลูเลม่อนโซดา', 'basePrice': 60, 'category': 'Italian Soda'},
+                    {'name': 'Blueberry Soda / บลูเบอร์รี่โซดา', 'basePrice': 60, 'category': 'Italian Soda'},
+                    {'name': 'Kiwi Soda / กีวี่โซดา', 'basePrice': 60, 'category': 'Italian Soda'},
+                    {'name': 'Strawberry Soda / สตรอเบอร์รี่โซดา', 'basePrice': 60, 'category': 'Italian Soda'},
+                    {'name': 'Raspberry Soda / ราสเบอร์รี่โซดา', 'basePrice': 60, 'category': 'Italian Soda'},
+                    {'name': 'Passion Fruit Soda / เสาวรสโซดา', 'basePrice': 60, 'category': 'Italian Soda'},
+                    {'name': 'Lychee Soda / ลิ้นจี่โซดา', 'basePrice': 60, 'category': 'Italian Soda'},
+                    {'name': 'Green Apple Soda / แอปเปิ้ลเขียวโซดา', 'basePrice': 60, 'category': 'Italian Soda'},
+                    {'name': 'Lemon Soda / มะนาวโซดา', 'basePrice': 60, 'category': 'Italian Soda'},
+                    {'name': 'Grape Soda / องุ่นโซดา', 'basePrice': 60, 'category': 'Italian Soda'},
+                    {'name': 'Orange Soda / ส้มโซดา', 'basePrice': 60, 'category': 'Italian Soda'},
+                    {'name': 'Pineapple Soda / สับปะรดโซดา', 'basePrice': 60, 'category': 'Italian Soda'},
+                    {'name': 'Honey Lemon Soda / น้ำผึ้งมะนาวโซดา', 'basePrice': 60, 'category': 'Italian Soda'},
+                    {'name': 'Punch Soda / พันซ์โซดา', 'basePrice': 60, 'category': 'Italian Soda'},
+                    {'name': 'Red Syrup Soda / น้ำแดงโซดา', 'basePrice': 60, 'category': 'Italian Soda'},
+
+                    // --- Smoothies (สมูทตี้) 65 THB ---
+                    {'name': 'Kiwi Smoothie / สมูทตี้กีวี่', 'basePrice': 65, 'category': 'Smoothies'},
+                    {'name': 'Blueberry Smoothie / สมูทตี้บลูเบอร์รี่', 'basePrice': 65, 'category': 'Smoothies'},
+                    {'name': 'Strawberry Smoothie / สมูทตี้สตรอเบอร์รี่', 'basePrice': 65, 'category': 'Smoothies'},
+                    {'name': 'Raspberry Smoothie / สมูทตี้ราสเบอร์รี่', 'basePrice': 65, 'category': 'Smoothies'},
+                    {'name': 'Passion Fruit Smoothie / สมูทตี้เสาวรส', 'basePrice': 65, 'category': 'Smoothies'},
+                    {'name': 'Lychee Smoothie / สมูทตี้ลิ้นจี่', 'basePrice': 65, 'category': 'Smoothies'},
+                    {'name': 'Green Apple Smoothie / สมูทตี้แอปเปิ้ลเขียว', 'basePrice': 65, 'category': 'Smoothies'},
+                    {'name': 'Lemon Smoothie / สมูทตี้มะนาว', 'basePrice': 65, 'category': 'Smoothies'},
+                    {'name': 'Yogurt Smoothie / สมูทตี้โยเกิร์ต', 'basePrice': 65, 'category': 'Smoothies'},
+
+                    // --- Coffee with variants ---
+                    {'name': 'Espresso / เอสเปรสโซ่', 'basePrice': 55, 'category': 'Coffee', 'hasVariants': true, 'icedPrice': 65, 'frappePrice': 75},
+                    {'name': 'Americano / อเมริกาโน่', 'basePrice': 55, 'category': 'Coffee', 'hasVariants': true, 'icedPrice': 65, 'frappePrice': 75},
+                    {'name': 'Cappuccino / คาปูชิโน่', 'basePrice': 55, 'category': 'Coffee', 'hasVariants': true, 'icedPrice': 65, 'frappePrice': 75},
+                    {'name': 'Mocha / มอคค่า', 'basePrice': 55, 'category': 'Coffee', 'hasVariants': true, 'icedPrice': 65, 'frappePrice': 75},
+                    {'name': 'Latte / ลาเต้', 'basePrice': 55, 'category': 'Coffee', 'hasVariants': true, 'icedPrice': 65, 'frappePrice': 75},
+                    {'name': 'Honey Coffee / กาแฟน้ำผึ้ง', 'basePrice': 55, 'category': 'Coffee', 'hasVariants': true, 'icedPrice': 65, 'frappePrice': 75},
+                    {'name': 'Black Coffee Honey / กาแฟดำน้ำผึ้ง', 'basePrice': 55, 'category': 'Coffee', 'hasVariants': true, 'icedPrice': 65, 'frappePrice': 75},
+                    {'name': 'Black Coffee Orange / กาแฟดำน้ำส้ม', 'basePrice': 75, 'category': 'Coffee'},
+
+                    // --- Tea ---
+                    {'name': 'Thai Tea / ชาเย็น', 'basePrice': 55, 'category': 'Tea', 'hasVariants': true, 'icedPrice': 60, 'frappePrice': 70},
+                    {'name': 'Green Tea / ชาเขียว', 'basePrice': 55, 'category': 'Tea', 'hasVariants': true, 'icedPrice': 60, 'frappePrice': 70},
+                    {'name': 'Lemon Tea / ชามะนาว', 'basePrice': 50, 'category': 'Tea', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
+                    {'name': 'Honey Lemon Tea / ชาน้ำผึ้งมะนาว', 'basePrice': 50, 'category': 'Tea', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
+                    {'name': 'Apple Tea / ชาแอปเปิ้ล', 'basePrice': 50, 'category': 'Tea', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
+                    {'name': 'Peach Tea / ชาพีช', 'basePrice': 50, 'category': 'Tea', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
+                    {'name': 'Butterfly Pea Honey Lemon / อัญชันน้ำผึ้งมะนาว', 'basePrice': 50, 'category': 'Tea', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
+
+                    // --- Milk ---
+                    {'name': 'Honey Lemon Milk / น้ำผึ้งมะนาว (นม)', 'basePrice': 50, 'category': 'Milk', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
+                    {'name': 'Fresh Milk / นมสด', 'basePrice': 50, 'category': 'Milk', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
+                    {'name': 'Honey Milk / นมน้ำผึ้ง', 'basePrice': 50, 'category': 'Milk', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
+                    {'name': 'Pink Milk (Sala) / นมชมพู', 'basePrice': 50, 'category': 'Milk', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
+                    {'name': 'Green Milk / นมเขียว', 'basePrice': 50, 'category': 'Milk', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
+                    {'name': 'Cocoa / โกโก้', 'basePrice': 50, 'category': 'Milk', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
+                    {'name': 'Matcha Latte / มัทฉะลาเต้', 'basePrice': 65, 'category': 'Milk'},
+                    {'name': 'Caramel Fresh Milk / นมสดคาราเมล', 'basePrice': 50, 'category': 'Milk', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
+                    {'name': 'Banana Milk Frappe / กล้วยหอมนมสดปั่น', 'basePrice': 65, 'category': 'Milk'},
+                    {'name': 'Oreo Milk / นมโอริโอ้', 'basePrice': 65, 'category': 'Milk'},
+                    {'name': 'Butterfly Pea Milk / อัญชันนมสด', 'basePrice': 55, 'category': 'Milk', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
+                    {'name': 'Avocado / อะโวคาโด้', 'basePrice': 65, 'category': 'Milk'},
+                    {'name': 'Coconut Milk / มะพร้าวนมสด', 'basePrice': 65, 'category': 'Milk'},
+                    {'name': 'Coconut Avocado Milk / มะพร้าวอะโวคาโด้นมสด', 'basePrice': 65, 'category': 'Milk'},
+
+                    // --- Bubble Tea (Iced/Frappe usually) ---
+                    {'name': 'Taiwan Milk Tea Bubble / ชานมไต้หวันไข่มุก', 'basePrice': 65, 'category': 'Bubble Tea'},
+                    {'name': 'Matcha Green Tea Bubble / มัทฉะกรีนทีมุก', 'basePrice': 65, 'category': 'Bubble Tea'},
+                    {'name': 'Chocolate Bubble / ช็อกโกแลตมุก', 'basePrice': 65, 'category': 'Bubble Tea'},
+                    {'name': 'Melon Bubble / เมล่อนมุก', 'basePrice': 65, 'category': 'Bubble Tea'},
+                    {'name': 'Strawberry Bubble / สตรอเบอร์รี่มุก', 'basePrice': 65, 'category': 'Bubble Tea'},
+                    {'name': 'Taro Bubble / เผือกมุก', 'basePrice': 65, 'category': 'Bubble Tea'},
+                    {'name': 'Rose Tea Bubble / ชากุหลาบมุก', 'basePrice': 65, 'category': 'Bubble Tea'},
+
+                    // --- Fresh Fruit ---
+                    {'name': 'Mango Smoothie / มะม่วงปั่น', 'basePrice': 85, 'category': 'Fresh Fruit'},
+                    {'name': 'Strawberry Cheesecake / สตรอเบอร์รี่ปั่นชีสเค้ก', 'basePrice': 85, 'category': 'Fresh Fruit'},
+                    {'name': 'Green Tea Red Bean / ชาเขียวปั่นถั่วแดง', 'basePrice': 85, 'category': 'Fresh Fruit'},
+                    {'name': 'Watermelon / น้ำแตงโม', 'basePrice': 65, 'category': 'Fresh Fruit'},
+                    {'name': 'Strawberry Juice / น้ำสตรอเบอร์รี่', 'basePrice': 65, 'category': 'Fresh Fruit'},
+                    {'name': 'Mango / น้ำมะม่วง', 'basePrice': 65, 'category': 'Fresh Fruit'},
+                    {'name': 'Orange Juice / น้ำส้ม', 'basePrice': 65, 'category': 'Fresh Fruit'},
+                    {'name': 'Lemon Juice / น้ำมะนาว', 'basePrice': 50, 'category': 'Fresh Fruit', 'hasVariants': true, 'icedPrice': 55, 'frappePrice': 65},
+                    {'name': 'Blueberry Juice / น้ำบลูเบอร์รี่', 'basePrice': 65, 'category': 'Fresh Fruit'},
+                    {'name': 'Kiwi Juice / น้ำกีวี่', 'basePrice': 65, 'category': 'Fresh Fruit'},
+                    {'name': 'Passion Fruit Juice / น้ำเสาวรส', 'basePrice': 65, 'category': 'Fresh Fruit'},
+                    {'name': 'Apple Juice / น้ำแอปเปิ้ล', 'basePrice': 65, 'category': 'Fresh Fruit'},
+                    {'name': 'Lychee Juice / น้ำลิ้นจี่', 'basePrice': 65, 'category': 'Fresh Fruit'},
+                    {'name': 'Carrot Juice / น้ำแครอท', 'basePrice': 65, 'category': 'Fresh Fruit'},
+                    {'name': 'Fresh Coconut / มะพร้าวสด', 'basePrice': 65, 'category': 'Fresh Fruit'},
+                  ];
+
+                  int totalDrinks = drinks.length;
+                  int successCount = 0;
+
+                  for (var drink in drinks) {
+                    List<Map<String, dynamic>> addOns = [];
+                    if (drink['category'] == 'Coffee') {
+                      addOns.add({'name': 'Coffee Shot (เพิ่มช็อต)', 'price': 20.0});
+                    } else if (drink['category'] == 'Bubble Tea') {
+                      addOns.add({'name': 'Extra Pearl (เพิ่มมุก)', 'price': 15.0});
+                    }
+
+                    List<Map<String, dynamic>> optionGroups = [];
+                    if (drink['hasVariants'] == true) {
+                      double iPrice = (drink['icedPrice'] as int).toDouble();
+                      double fPrice = (drink['frappePrice'] as int).toDouble();
+                      optionGroups.add({
+                        'title': 'Serving Style / รูปแบบการเสิร์ฟ',
+                        'options': [
+                          'Hot (ร้อน)',
+                          'Iced (เย็น) [+${(iPrice - (drink['basePrice'] as int)).toStringAsFixed(0)} THB]',
+                          'Frappe (ปั่น) [+${(fPrice - (drink['basePrice'] as int)).toStringAsFixed(0)} THB]'
+                        ]
+                      });
+                    } else if (drink['category'] == 'Fresh Fruit' || drink['category'] == 'Smoothies' || drink['category'] == 'Italian Soda') {
+                      optionGroups.add({
+                        'title': 'Serving Style / รูปแบบการเสิร์ฟ',
+                        'options': ['Frappe (ปั่น) / Iced (เย็น)']
+                      });
+                    }
+
+                    await db.collection('products').add({
+                      'businessId': businessId,
+                      'name': drink['name'],
+                      'description': 'Refreshing ${drink['category']} from PhingPha Cafe',
+                      'basePrice': (drink['basePrice'] as int).toDouble(),
+                      'category': drink['category'],
+                      'imageUrl': '',
+                      'isAvailable': true,
+                      'optionGroups': optionGroups,
+                      'addOns': addOns,
+                      'customOptions': [],
+                      'quantity': 999,
+                      'soldCount': 0,
+                      'createdAt': FieldValue.serverTimestamp(),
+                    });
+                    successCount++;
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Successfully seeded $successCount drinks!')));
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                }
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade400, style: BorderStyle.solid, width: 2),
+              ),
+              child: const Center(
+                child: Text(
+                  "[Long Press to Auto-Seed PhingPha Menu]",
+                  style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
           ),
           
           const SizedBox(height: 20),

@@ -47,7 +47,7 @@ class VendorLedgerTab extends StatelessWidget {
                 children: [
                   const Text("Gross Revenue", style: TextStyle(color: Colors.white70, fontSize: 16)),
                   const SizedBox(height: 8),
-                  Text("MMK ${totalRevenue.toStringAsFixed(0)}", style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
+                  Text("THB ${totalRevenue.toStringAsFixed(0)}", style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   Text("${completedOrders.length} Completed Orders", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                 ],
@@ -77,7 +77,7 @@ class VendorLedgerTab extends StatelessWidget {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text("+ MMK ${order.totalPrice.toStringAsFixed(0)}", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text("+ THB ${order.totalPrice.toStringAsFixed(0)}", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 16)),
                             Text((order.paymentMethod == 'Cash') ? 'Cash on Delivery' : 'Paid Online', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
                           ],
                         )

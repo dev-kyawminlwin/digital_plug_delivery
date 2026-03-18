@@ -69,149 +69,144 @@ class _RiderRegistrationScreenState extends State<RiderRegistrationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          Container(
-            height: 200,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFF0F172A), Color(0xFF1E293B)], // Dark rider theme
-              ),
-            ),
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              height: MediaQuery.of(context).size.height - 160,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(36)),
-              ),
-            ),
-          ),
-          SafeArea(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    child: Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
-                            child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Text("Rider Registration", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-                      ],
-                    ),
+      backgroundColor: const Color(0xFFF9FAFB),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF1F2937)),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Icon
+              Center(
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF5E1E).withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(height: 12),
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(28),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 20, offset: const Offset(0, 8))],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text("Personal Info", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF6B7280), letterSpacing: 0.5)),
-                        const SizedBox(height: 14),
-                        _field(_nameCtrl, "Full Name", Icons.person_outline),
-                        const SizedBox(height: 12),
-                        _field(_phoneCtrl, "Phone Number", Icons.phone_outlined, type: TextInputType.phone),
-                        const SizedBox(height: 12),
-                        _field(_addressCtrl, "Home Address", Icons.home_outlined, maxLines: 2, hintText: "Needed for identity verification"),
-                        const SizedBox(height: 20),
-                        const Text("Account Details", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF6B7280), letterSpacing: 0.5)),
-                        const SizedBox(height: 14),
-                        _field(_emailCtrl, "Email Address", Icons.email_outlined, type: TextInputType.emailAddress),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _passCtrl,
-                          obscureText: _obscurePassword,
-                          decoration: InputDecoration(
-                            labelText: "Password",
-                            prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF6B7280), size: 20),
-                            suffixIcon: IconButton(
-                              icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: const Color(0xFF6B7280), size: 20),
-                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                            ),
-                            filled: true,
-                            fillColor: const Color(0xFFF9FAFB),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF0F172A), width: 2)),
-                            labelStyle: const TextStyle(color: Color(0xFF6B7280)),
-                          ),
-                        ),
-                        const SizedBox(height: 28),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 52,
-                          child: _isLoading
-                              ? const Center(child: CircularProgressIndicator())
-                              : ElevatedButton(
-                                  onPressed: _register,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF10B981), // Emerald green
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                    elevation: 0,
-                                  ),
-                                  child: const Text("Become a Rider", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text("Already a rider? ", style: TextStyle(color: Color(0xFF6B7280))),
-                      GestureDetector(
-                        onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
-                        child: const Text("Sign In", style: TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.bold, fontSize: 15)),
+                  child: const Icon(Icons.motorcycle_rounded, size: 40, color: Color(0xFFFF5E1E)),
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Headers
+              const Text("Fleet Rider", style: TextStyle(fontSize: 16, color: Color(0xFFFF5E1E), fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              const Text("Become a Rider", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF1F2937), letterSpacing: -0.5)),
+              const SizedBox(height: 8),
+              const Text("Join our fleet and start earning today.", style: TextStyle(fontSize: 14, color: Color(0xFF6B7280), height: 1.5)),
+              const SizedBox(height: 48),
+
+              // Personal Info
+              _buildFloatingField(controller: _nameCtrl, hintText: "Full Name", icon: Icons.person_outline),
+              const SizedBox(height: 16),
+              _buildFloatingField(controller: _phoneCtrl, hintText: "Phone Number", icon: Icons.phone_outlined, keyboardType: TextInputType.phone),
+              const SizedBox(height: 16),
+              _buildFloatingField(controller: _addressCtrl, hintText: "Home Address", icon: Icons.home_outlined, maxLines: 2),
+              const SizedBox(height: 32),
+
+              // Account Details
+              _buildFloatingField(controller: _emailCtrl, hintText: "Email Address", icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
+              const SizedBox(height: 16),
+              
+              // Password
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 15, offset: const Offset(0, 5))],
+                ),
+                child: TextField(
+                  controller: _passCtrl,
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    hintText: "Password",
+                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 15),
+                    prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF9CA3AF), size: 22),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        color: const Color(0xFF9CA3AF), size: 20,
                       ),
-                    ],
+                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                   ),
-                  const SizedBox(height: 30),
+                ),
+              ),
+              
+              const SizedBox(height: 48),
+
+              // Button
+              ElevatedButton(
+                onPressed: _isLoading ? null : _register,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF5E1E),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  elevation: 8,
+                  shadowColor: const Color(0xFFFF5E1E).withValues(alpha: 0.4),
+                ),
+                child: _isLoading
+                    ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                    : const Text("Become a Rider", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(height: 48),
+
+              // Bottom links
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                   const Text("Already a rider? ", style: TextStyle(color: Color(0xFF6B7280), fontSize: 15)),
+                  GestureDetector(
+                    onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
+                    child: const Text("Sign In", style: TextStyle(color: Color(0xFFFF5E1E), fontWeight: FontWeight.bold, fontSize: 15)),
+                  ),
                 ],
               ),
-            ),
+              const SizedBox(height: 20),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _field(TextEditingController ctrl, String label, IconData icon,
-      {TextInputType type = TextInputType.text, int maxLines = 1, String? hintText}) {
-    return TextField(
-      controller: ctrl,
-      keyboardType: type,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hintText,
-        prefixIcon: Icon(icon, color: const Color(0xFF6B7280), size: 20),
-        filled: true,
-        fillColor: const Color(0xFFF9FAFB),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF0F172A), width: 2)),
-        labelStyle: const TextStyle(color: Color(0xFF6B7280)),
+  Widget _buildFloatingField({
+    required TextEditingController controller,
+    required String hintText,
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 15, offset: const Offset(0, 5))],
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 15),
+          prefixIcon: Icon(icon, color: const Color(0xFF9CA3AF), size: 22),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        ),
       ),
     );
   }

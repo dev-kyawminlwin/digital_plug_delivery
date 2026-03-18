@@ -352,7 +352,7 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                   point: currentPos,
                   width: 40,
                   height: 40,
-                  child: const Icon(Icons.delivery_dining, color: Colors.orange, size: 40),
+                  child: const Icon(Icons.delivery_dining, color: Color(0xFFFF5E1E), size: 40),
                 )
               ]
             )

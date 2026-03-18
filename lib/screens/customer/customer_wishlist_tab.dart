@@ -7,7 +7,7 @@ import 'shop_menu_screen.dart';
 class CustomerWishlistTab extends StatelessWidget {
   const CustomerWishlistTab({super.key});
 
-  static const Color _kPrimary = Color(0xFF1E3A8A);
+  static const Color _kPrimary = Color(0xFFFF5E1E);
 
   Future<void> _removeFavorite(String userId, String businessId) async {
     await FirebaseFirestore.instance.collection('users').doc(userId).update({
@@ -195,7 +195,7 @@ class CustomerWishlistTab extends StatelessWidget {
                                             const Icon(Icons.delivery_dining_rounded, color: Color(0xFFEA580C), size: 15),
                                             const SizedBox(width: 4),
                                             Text(
-                                              data['deliveryFee'] != null ? "MMK ${data['deliveryFee']}" : "Free",
+                                              data['deliveryFee'] != null ? "THB ${data['deliveryFee']}" : "Free",
                                               style: const TextStyle(fontSize: 12, color: Color(0xFFEA580C), fontWeight: FontWeight.w600),
                                             ),
                                           ],

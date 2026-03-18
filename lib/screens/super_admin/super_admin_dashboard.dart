@@ -198,10 +198,10 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                   children: [
                     const Text('TOTAL GMV (ALL TIME)', style: TextStyle(color: Colors.white60, fontSize: 11, letterSpacing: 1.2)),
                     const SizedBox(height: 6),
-                    Text('MMK ${gmv.toStringAsFixed(0)}',
+                    Text('THB ${gmv.toStringAsFixed(0)}',
                         style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-                    Text('This Month: MMK ${monthlyGmv.toStringAsFixed(0)}',
+                    Text('This Month: THB ${monthlyGmv.toStringAsFixed(0)}',
                         style: const TextStyle(color: Colors.white70, fontSize: 13)),
                     const SizedBox(height: 16),
                     Container(
@@ -391,7 +391,7 @@ class _AnalyticsTab extends StatelessWidget {
             else
               ...sortedMonths.reversed.take(6).map((month) => _analyticsRow(
                   Icons.calendar_month_rounded, const Color(0xFF6D28D9),
-                  month, 'MMK ${monthlyRev[month]!.toStringAsFixed(0)}')),
+                  month, 'THB ${monthlyRev[month]!.toStringAsFixed(0)}')),
 
             const SizedBox(height: 24),
             _sectionTitle('Shop Revenue'),
@@ -401,7 +401,7 @@ class _AnalyticsTab extends StatelessWidget {
             else
               ...sortedShops.map((e) => _analyticsRow(
                   Icons.storefront_rounded, const Color(0xFF1E3A8A),
-                  shopNames[e.key] ?? e.key, 'MMK ${e.value.toStringAsFixed(0)}')),
+                  shopNames[e.key] ?? e.key, 'THB ${e.value.toStringAsFixed(0)}')),
 
             const SizedBox(height: 24),
             _sectionTitle('Rider Earnings (Delivery Fees)'),
@@ -411,7 +411,7 @@ class _AnalyticsTab extends StatelessWidget {
             else
               ...sortedRiders.map((e) => _analyticsRow(
                   Icons.motorcycle_rounded, const Color(0xFF059669),
-                  riderNames[e.key] ?? e.key, 'MMK ${e.value.toStringAsFixed(0)}')),
+                  riderNames[e.key] ?? e.key, 'THB ${e.value.toStringAsFixed(0)}')),
 
             const SizedBox(height: 24),
             _sectionTitle('Top Customers by Spending'),
@@ -421,7 +421,7 @@ class _AnalyticsTab extends StatelessWidget {
             else
               ...sortedUsers.take(10).map((e) => _analyticsRow(
                   Icons.person_rounded, const Color(0xFFEA580C),
-                  userNames[e.key] ?? e.key, 'MMK ${e.value.toStringAsFixed(0)}')),
+                  userNames[e.key] ?? e.key, 'THB ${e.value.toStringAsFixed(0)}')),
             const SizedBox(height: 40),
           ],
         );

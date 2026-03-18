@@ -32,7 +32,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _isPlacingOrder = false;
   final double deliveryFee = 2000;
 
-  static const Color _kPrimary = Color(0xFF1E3A8A);
+  static const Color _kPrimary = Color(0xFFFF5E1E);
   static const Color _kDark = Color(0xFF1F2937);
 
   @override
@@ -244,7 +244,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   style: TextStyle(color: Colors.grey.shade700, fontSize: 13)),
                             ),
                             Text(
-                              "MMK ${(product.basePrice * qty).toStringAsFixed(0)}",
+                              "THB ${(product.basePrice * qty).toStringAsFixed(0)}",
                               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                             ),
                           ],
@@ -252,13 +252,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       );
                     }).toList(),
                   const Divider(height: 20),
-                  _priceLine("Subtotal", "MMK ${widget.subtotal.toStringAsFixed(0)}"),
+                  _priceLine("Subtotal", "THB ${widget.subtotal.toStringAsFixed(0)}"),
                   const SizedBox(height: 6),
-                  _priceLine("Delivery Fee", "MMK ${deliveryFee.toStringAsFixed(0)}"),
+                  _priceLine("Delivery Fee", "THB ${deliveryFee.toStringAsFixed(0)}"),
                   const Divider(height: 16),
                   _priceLine(
                     "Total",
-                    "MMK ${(widget.subtotal + deliveryFee).toStringAsFixed(0)}",
+                    "THB ${(widget.subtotal + deliveryFee).toStringAsFixed(0)}",
                     isBold: true,
                     valueColor: Colors.green,
                   ),

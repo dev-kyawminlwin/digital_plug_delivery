@@ -75,8 +75,25 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
                 const SizedBox(height: 16),
                 // App Bar Row
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    // Location / Delivery Address Area
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Delivering to", style: TextStyle(color: Colors.grey.shade500, fontSize: 13, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            const Icon(Icons.location_on_rounded, color: Color(0xFFFF5E1E), size: 18),
+                            const SizedBox(width: 4),
+                            const Text("Current Location", style: TextStyle(color: _kDark, fontSize: 15, fontWeight: FontWeight.bold)),
+                            const SizedBox(width: 4),
+                            Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey.shade500, size: 20),
+                          ],
+                        ),
+                      ],
+                    ),
                     StreamBuilder<User?>(
                       stream: FirebaseAuth.instance.authStateChanges(),
                       builder: (context, authSnapshot) {
@@ -156,39 +173,63 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
                 ),
                 const SizedBox(height: 24),
 
-                // Search Bar
-                Container(
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(28),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 5)),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 20),
-                      Icon(Icons.search, color: Colors.grey.shade400, size: 22),
-                      const SizedBox(width: 12),
-                      Text("Search food or restaurants...",
-                          style: TextStyle(color: Colors.grey.shade400, fontSize: 15)),
-                    ],
-                  ),
+                // Search Bar with Filter Button
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 5)),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 20),
+                            Icon(Icons.search, color: Colors.grey.shade400, size: 22),
+                            const SizedBox(width: 12),
+                            Text("Find food or restaurant...",
+                                style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      height: 56,
+                      width: 56,
+                      decoration: BoxDecoration(
+                        color: _kPrimary,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                            BoxShadow(color: _kPrimary.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4)),
+                        ],
+                      ),
+                      child: const Icon(Icons.tune_rounded, color: Colors.white),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
 
-                // Category Chips
+                // Category Grid/List
                 _buildCategoryChips(),
                 const SizedBox(height: 28),
+                
+                // Promotional Banner
+                _buildPromoBanner(),
+                const SizedBox(height: 32),
 
                 // Section Header
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const Text("Popular restaurants",
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _kDark)),
-                    Text("See all", style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
+                    const Text("Popular Restaurants",
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: _kDark, letterSpacing: -0.5)),
+                    Text("See all", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _kPrimary)),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -203,35 +244,107 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
     );
   }
 
+  Widget _buildPromoBanner() {
+    return Container(
+      width: double.infinity,
+      height: 140,
+      decoration: BoxDecoration(
+        color: const Color(0xFF10B981), // Emerald Green pattern
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(color: const Color(0xFF10B981).withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 8)),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -20,
+            bottom: -20,
+            child: Icon(Icons.fastfood_rounded, size: 120, color: Colors.white.withValues(alpha: 0.2)),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text("Free Delivery!", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 8),
+                const Text("On your first 3 orders\nabove 200 THB.", style: TextStyle(color: Colors.white, fontSize: 14, height: 1.4)),
+              ],
+            ),
+          ),
+          Positioned(
+            top: 24,
+            right: 24,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text("Claim Now", style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 12)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCategoryChips() {
-    final categories = ['All', 'Main', 'Soups', 'Salads', 'Drinks'];
+    final categories = <Map<String, dynamic>>[
+      {'name': 'All', 'icon': Icons.dashboard_rounded},
+      {'name': 'Main', 'icon': Icons.lunch_dining_rounded},
+      {'name': 'Soups', 'icon': Icons.ramen_dining_rounded},
+      {'name': 'Salads', 'icon': Icons.eco_rounded},
+      {'name': 'Drinks', 'icon': Icons.local_cafe_rounded},
+    ];
     return SizedBox(
-      height: 38,
+      height: 100, // accommodate shadow
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
         itemCount: categories.length,
         itemBuilder: (context, index) {
-          final isSelected = _selectedCategory == categories[index];
+          final cat = categories[index];
+          final isSelected = _selectedCategory == cat['name'];
           return GestureDetector(
-            onTap: () => setState(() => _selectedCategory = categories[index]),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+            onTap: () => setState(() => _selectedCategory = cat['name'] as String),
+            child: Container(
+              width: 80,
+              margin: const EdgeInsets.only(right: 14, bottom: 10), // Give room for drop shadow
               decoration: BoxDecoration(
-                color: isSelected ? _kPrimary : Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: isSelected ? _kPrimary : Colors.grey.shade300,
-                ),
+                color: isSelected ? _kPrimary : Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: isSelected 
+                    ? [BoxShadow(color: _kPrimary.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 5))]
+                    : [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))],
               ),
-              child: Text(
-                categories[index],
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? Colors.white : Colors.grey.shade600,
-                ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isSelected ? Colors.white.withValues(alpha: 0.2) : const Color(0xFFF9FAFB),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      cat['icon'] as IconData,
+                      color: isSelected ? Colors.white : Colors.grey.shade600,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    cat['name'] as String,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                      color: isSelected ? Colors.white : Colors.grey.shade600,
+                    ),
+                  ),
+                ],
               ),
             ),
           );
@@ -317,15 +430,15 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 16, offset: const Offset(0, 6)),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 20, offset: const Offset(0, 8)),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Image with gradient overlay
+            // Image with floating badges
             Expanded(
-              flex: 12,
+              flex: 14,
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                 child: Stack(
@@ -340,77 +453,83 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
                     else
                       _shopPlaceholder(),
 
-                    // Gradient for text contrast
-                    Positioned.fill(
-                      child: DecoratedBox(
+                    // Floating Time Badge (Top Left)
+                    Positioned(
+                      top: 12,
+                      left: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Colors.black.withValues(alpha: 0.2), Colors.transparent],
-                          ),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)],
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.access_time_filled_rounded, size: 14, color: _kPrimary),
+                            const SizedBox(width: 4),
+                            const Text("15-20 min", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: _kDark)),
+                          ],
                         ),
                       ),
                     ),
 
-                    // Floating Heart
+                    // Floating Heart (Top Right)
                     Positioned(
-                      top: 10,
-                      right: 10,
-                      child: Icon(Icons.favorite_border_rounded, color: Colors.white, size: 20),
+                      top: 12,
+                      right: 12,
+                      child: Container(
+                         padding: const EdgeInsets.all(6),
+                         decoration: BoxDecoration(
+                           color: Colors.white.withValues(alpha: 0.9),
+                           shape: BoxShape.circle,
+                         ),
+                         child: const Icon(Icons.favorite_rounded, color: Colors.grey, size: 16),
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
-            // Info
+            // Info Content
             Expanded(
-              flex: 10,
+              flex: 9,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.all(14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          data['name'] ?? 'Unnamed Shop',
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: _kDark),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 6),
-                        // 5 Stars row mockup
-                        Row(
-                          children: [
-                            const Icon(Icons.star_rounded, color: _kGold, size: 14),
-                            const Icon(Icons.star_rounded, color: _kGold, size: 14),
-                            const Icon(Icons.star_rounded, color: _kGold, size: 14),
-                            const Icon(Icons.star_rounded, color: _kGold, size: 14),
-                            Icon(Icons.star_rounded, color: Colors.grey.shade300, size: 14),
-                            const SizedBox(width: 4),
-                            Text("4.0", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade600)),
-                          ],
-                        ),
-                      ],
+                    Text(
+                      data['name'] ?? 'Unnamed Shop',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: _kDark, letterSpacing: -0.3),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          data['deliveryFee'] != null ? "MMK ${data['deliveryFee']}" : "Free",
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _kDark),
+                        // Ratings
+                        Row(
+                          children: [
+                            const Icon(Icons.star_rounded, color: _kGold, size: 16),
+                            const SizedBox(width: 4),
+                            const Text("4.8", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: _kDark)),
+                            Text(" (120+)", style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+                          ],
                         ),
+                        // Delivery logic
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: _kPrimary,
-                            borderRadius: BorderRadius.circular(12),
+                            color: const Color(0xFFF3F4F6),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Text("VISIT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
-                        )
+                          child: Text(
+                            data['deliveryFee'] != null ? "฿${data['deliveryFee']}" : "Free",
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: _kDark),
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -519,52 +638,56 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
     ];
     return Container(
       height: 72,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: _kDark,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(36),
         boxShadow: [
-          BoxShadow(color: _kDark.withValues(alpha: 0.35), blurRadius: 16, offset: const Offset(0, 8)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 24, offset: const Offset(0, 12)),
         ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: List.generate(items.length, (index) {
           final isSelected = _bottomNavIndex == index;
-          final color = isSelected ? const Color(0xFFFF5E1E) : Colors.white38;
+          final color = isSelected ? Colors.white : Colors.grey.shade400;
           return GestureDetector(
             onTap: () => setState(() => _bottomNavIndex = index),
             behavior: HitTestBehavior.opaque,
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOutCubic,
-              padding: EdgeInsets.only(top: isSelected ? 8 : 12, bottom: isSelected ? 8 : 12, left: 16, right: 16),
-              child: Column(
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutBack,
+              padding: EdgeInsets.symmetric(horizontal: isSelected ? 20 : 12, vertical: 12),
+              decoration: BoxDecoration(
+                color: isSelected ? const Color(0xFFFF5E1E) : Colors.transparent,
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  AnimatedScale(
-                    scale: isSelected ? 1.1 : 1.0,
-                    duration: const Duration(milliseconds: 250),
-                    child: Icon(
-                      isSelected ? items[index].$1 : items[index].$2,
-                      size: 24,
-                      color: color,
-                    ),
+                  Icon(
+                    isSelected ? items[index].$1 : items[index].$2,
+                    size: 24,
+                    color: color,
                   ),
-                  const SizedBox(height: 4),
-                  AnimatedOpacity(
-                    opacity: isSelected ? 1.0 : 0.7,
-                    duration: const Duration(milliseconds: 250),
-                    child: Text(
-                      items[index].$3,
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 11,
-                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                      ),
-                    ),
-                  ),
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOutCubic,
+                    child: isSelected
+                        ? Padding(
+                            padding: const EdgeInsets.only(left: 8.0),
+                            child: Text(
+                              items[index].$3,
+                              style: TextStyle(
+                                color: color,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                  )
                 ],
               ),
             ),

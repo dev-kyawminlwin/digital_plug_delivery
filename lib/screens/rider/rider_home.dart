@@ -24,8 +24,8 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
 
   // Dark Green Rider Theme
   static const Color _kBg = Color(0xFF0F172A);      // Near-black background
-  static const Color _kGreen = Color(0xFF10B981);    // Emerald green
-  static const Color _kGreenDark = Color(0xFF059669);
+  static const Color _kPrimary = Color(0xFFFF5E1E);    // FoodXa Orange
+  static const Color _kPrimaryDark = Color(0xFFD94A1A);
   static const Color _kCard = Color(0xFF1E293B);
 
   @override
@@ -58,7 +58,7 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
       builder: (context, riderSnapshot) {
-        if (!riderSnapshot.hasData) return const Scaffold(backgroundColor: _kBg, body: Center(child: CircularProgressIndicator(color: _kGreen)));
+        if (!riderSnapshot.hasData) return const Scaffold(backgroundColor: _kBg, body: Center(child: CircularProgressIndicator(color: _kPrimary)));
 
         final data = riderSnapshot.data?.data() as Map<String, dynamic>? ?? {};
         final businessId = data['businessId'];
@@ -96,10 +96,10 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                               children: [
                                 const Row(
                                   children: [
-                                    Icon(Icons.motorcycle_rounded, color: _kGreen, size: 18),
+                                    Icon(Icons.motorcycle_rounded, color: _kPrimary, size: 18),
                                     SizedBox(width: 6),
                                     Text("RIDER PANEL",
-                                        style: TextStyle(color: _kGreen, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1.2)),
+                                        style: TextStyle(color: _kPrimary, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1.2)),
                                   ],
                                 ),
                                 const SizedBox(height: 4),
@@ -122,11 +122,11 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                                     decoration: BoxDecoration(
                                       color: isAvailable
-                                          ? _kGreen.withValues(alpha: 0.2)
+                                          ? _kPrimary.withValues(alpha: 0.2)
                                           : Colors.white.withValues(alpha: 0.08),
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(
-                                        color: isAvailable ? _kGreen : Colors.white24,
+                                        color: isAvailable ? _kPrimary : Colors.white24,
                                       ),
                                     ),
                                     child: Row(
@@ -135,7 +135,7 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                                         Container(
                                           width: 8, height: 8,
                                           decoration: BoxDecoration(
-                                            color: isAvailable ? _kGreen : Colors.white38,
+                                            color: isAvailable ? _kPrimary : Colors.white38,
                                             shape: BoxShape.circle,
                                           ),
                                         ),
@@ -143,7 +143,7 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                                         Text(
                                           isAvailable ? "Online" : "Offline",
                                           style: TextStyle(
-                                            color: isAvailable ? _kGreen : Colors.white60,
+                                            color: isAvailable ? _kPrimary : Colors.white60,
                                             fontWeight: FontWeight.bold,
                                             fontSize: 12,
                                           ),
@@ -177,9 +177,9 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Row(
                           children: [
-                            _walletChip("💰 Wallet", "MMK ${walletBalance.toStringAsFixed(0)}", _kGreen),
+                            _walletChip("💰 Wallet", "THB ${walletBalance.toStringAsFixed(0)}", _kPrimary),
                             const SizedBox(width: 12),
-                            _walletChip("💵 Cash to Drop", "MMK ${collectedCash.toStringAsFixed(0)}", Colors.redAccent),
+                            _walletChip("💵 Cash to Drop", "THB ${collectedCash.toStringAsFixed(0)}", Colors.redAccent),
                           ],
                         ),
                       ),
@@ -187,9 +187,9 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                       // Tab Bar
                       TabBar(
                         controller: _tabController,
-                        indicatorColor: _kGreen,
+                        indicatorColor: _kPrimary,
                         indicatorWeight: 3,
-                        labelColor: _kGreen,
+                        labelColor: _kPrimary,
                         unselectedLabelColor: Colors.white38,
                         labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                         tabs: const [
@@ -274,9 +274,9 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: _kGreen.withValues(alpha: 0.4)),
+                border: Border.all(color: _kPrimary.withValues(alpha: 0.4)),
                 boxShadow: [
-                  BoxShadow(color: _kGreen.withValues(alpha: 0.1), blurRadius: 16, offset: const Offset(0, 4))
+                  BoxShadow(color: _kPrimary.withValues(alpha: 0.1), blurRadius: 16, offset: const Offset(0, 4))
                 ],
               ),
               child: Padding(
@@ -289,14 +289,14 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: _kGreen.withValues(alpha: 0.1),
+                            color: _kPrimary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                          ),
                           child: const Text("NEW ORDER",
-                              style: TextStyle(color: _kGreen, fontWeight: FontWeight.bold, fontSize: 10)),
+                              style: TextStyle(color: _kPrimary, fontWeight: FontWeight.bold, fontSize: 10)),
                         ),
                         const Spacer(),
-                        Text("MMK ${order.totalPrice.toStringAsFixed(0)}",
+                        Text("THB ${order.totalPrice.toStringAsFixed(0)}",
                             style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green, fontSize: 16)),
                       ],
                     ),
@@ -328,7 +328,7 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _kGreen,
+                          backgroundColor: _kPrimary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 0,
@@ -367,7 +367,7 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                   icon: const Icon(Icons.payments_rounded),
                   label: const Text("Settle Balances with Shop"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _kGreenDark,
+                    backgroundColor: _kPrimaryDark,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -382,7 +382,7 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: const Text("Balances settled ✓"),
-                          backgroundColor: _kGreen,
+                          backgroundColor: _kPrimary,
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           margin: const EdgeInsets.all(16),
@@ -454,9 +454,9 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                           Text("📍 ${order.address}", style: TextStyle(color: Colors.grey.shade700, fontSize: 13)),
                           const SizedBox(height: 4),
                           Text("📞 ${order.phone}",
-                              style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600, fontSize: 13)),
+                              style: const TextStyle(color: Color(0xFFFF5E1E), fontWeight: FontWeight.w600, fontSize: 13)),
                           Text(
-                            "💰 MMK ${order.totalPrice.toStringAsFixed(0)} • ${order.paymentMethod}",
+                            "💰 THB ${order.totalPrice.toStringAsFixed(0)} • ${order.paymentMethod}",
                             style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
                           ),
                           const SizedBox(height: 12),
@@ -512,7 +512,7 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
     final stages = {
       'assigned': ('PICK UP', Colors.blue),
       'picked_up': ('I\'VE ARRIVED', Colors.deepPurple),
-      'arrived': ('COMPLETE ✓', _kGreen),
+      'arrived': ('COMPLETE ✓', _kPrimary),
     };
     final stage = stages[order.status];
     if (stage == null) return const SizedBox.shrink();
