@@ -8,6 +8,7 @@ import '../admin/admin_dashboard.dart';
 import '../rider/rider_home.dart';
 import '../customer/marketplace_home.dart';
 import 'welcome_screen.dart';
+import '../shared/guest_language_switcher.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -132,6 +133,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF1F2937)),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: const [
+          GuestLanguageSwitcher(),
+          SizedBox(width: 16),
+        ],
       ),
       body: SafeArea(
         child: FadeTransition(

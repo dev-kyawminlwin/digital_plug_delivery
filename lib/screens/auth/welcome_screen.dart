@@ -4,6 +4,7 @@ import '../customer/customer_registration_screen.dart';
 import 'shop_registration_screen.dart';
 import 'rider_registration_screen.dart';
 import '../customer/marketplace_home.dart';
+import '../shared/guest_language_switcher.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -12,13 +13,21 @@ class WelcomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: const [
+          GuestLanguageSwitcher(),
+          SizedBox(width: 16),
+        ],
+      ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Spacer(flex: 2),
+              const Spacer(flex: 1),
               // Floating App Icon mimicking the illustration
               Center(
                 child: Container(

@@ -10,6 +10,8 @@ import 'customer_wishlist_tab.dart';
 import 'customer_map_tab.dart'; // Added this import
 import '../admin/admin_dashboard.dart';
 import '../rider/rider_home.dart';
+import '../../l10n/app_localizations.dart';
+import '../shared/guest_language_switcher.dart';
 
 class MarketplaceHome extends StatefulWidget {
   const MarketplaceHome({super.key});
@@ -69,13 +71,13 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("Delivering to", style: TextStyle(color: Colors.grey.shade500, fontSize: 13, fontWeight: FontWeight.w600)),
+                        Text(AppLocalizations.of(context)!.deliveringTo, style: TextStyle(color: Colors.grey.shade500, fontSize: 13, fontWeight: FontWeight.w600)),
                         const SizedBox(height: 2),
                         Row(
                           children: [
                             const Icon(Icons.location_on_rounded, color: Color(0xFFFF5E1E), size: 18),
                             const SizedBox(width: 4),
-                            const Text("Current Location", style: TextStyle(color: _kDark, fontSize: 15, fontWeight: FontWeight.bold)),
+                            Text(AppLocalizations.of(context)!.currentLocation, style: const TextStyle(color: _kDark, fontSize: 15, fontWeight: FontWeight.bold)),
                             const SizedBox(width: 4),
                             Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey.shade500, size: 20),
                           ],
@@ -88,24 +90,30 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
                         bool isLoggedIn = authSnapshot.hasData;
 
                         if (!isLoggedIn) {
-                          return GestureDetector(
-                            onTap: _handleProfileTap,
-                            child: Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(0xFFFFF7ED),
-                                border: Border.all(
-                                  color: const Color(0xFFEA580C).withValues(alpha: 0.3),
+                          return Row(
+                            children: [
+                              const GuestLanguageSwitcher(),
+                              const SizedBox(width: 12),
+                              GestureDetector(
+                                onTap: _handleProfileTap,
+                                child: Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: const Color(0xFFFFF7ED),
+                                    border: Border.all(
+                                      color: const Color(0xFFEA580C).withValues(alpha: 0.3),
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.login_rounded,
+                                    color: Color(0xFFEA580C),
+                                    size: 22,
+                                  ),
                                 ),
                               ),
-                              child: const Icon(
-                                Icons.login_rounded,
-                                color: Color(0xFFEA580C),
-                                size: 22,
-                              ),
-                            ),
+                            ],
                           );
                         }
 
@@ -155,9 +163,9 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
                 const SizedBox(height: 24),
 
                 // Hero text
-                const Text(
-                  "Get Your\nFavorite Meals\nDelivered\nToday!",
-                  style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, height: 1.15, color: _kDark),
+                Text(
+                  AppLocalizations.of(context)!.heroText,
+                  style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, height: 1.15, color: _kDark),
                 ),
                 const SizedBox(height: 24),
 
@@ -179,7 +187,7 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
                             const SizedBox(width: 20),
                             Icon(Icons.search, color: Colors.grey.shade400, size: 22),
                             const SizedBox(width: 12),
-                            Text("Find food or restaurant...",
+                            Text(AppLocalizations.of(context)!.findFood,
                                 style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
                           ],
                         ),
@@ -215,9 +223,9 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const Text("Popular Restaurants",
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: _kDark, letterSpacing: -0.5)),
-                    Text("See all", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _kPrimary)),
+                    Text(AppLocalizations.of(context)!.popularRestaurants,
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: _kDark, letterSpacing: -0.5)),
+                    Text(AppLocalizations.of(context)!.seeAll, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _kPrimary)),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -280,12 +288,13 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
   }
 
   Widget _buildCategoryChips() {
+    final l10n = AppLocalizations.of(context)!;
     final categories = <Map<String, dynamic>>[
-      {'name': 'All', 'icon': Icons.dashboard_rounded},
-      {'name': 'Main', 'icon': Icons.lunch_dining_rounded},
-      {'name': 'Soups', 'icon': Icons.ramen_dining_rounded},
-      {'name': 'Salads', 'icon': Icons.eco_rounded},
-      {'name': 'Drinks', 'icon': Icons.local_cafe_rounded},
+      {'name': 'All', 'label': l10n.all, 'icon': Icons.dashboard_rounded},
+      {'name': 'Main', 'label': l10n.catMain, 'icon': Icons.lunch_dining_rounded},
+      {'name': 'Soups', 'label': l10n.catSoups, 'icon': Icons.ramen_dining_rounded},
+      {'name': 'Salads', 'label': l10n.catSalads, 'icon': Icons.eco_rounded},
+      {'name': 'Drinks', 'label': l10n.catDrinks, 'icon': Icons.local_cafe_rounded},
     ];
     return SizedBox(
       height: 100, // accommodate shadow
@@ -325,7 +334,7 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    cat['name'] as String,
+                    cat['label'] as String,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
@@ -618,11 +627,12 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
   }
 
   Widget _buildFloatingNavBar() {
-    const items = [
-      (Icons.home_rounded, Icons.home_outlined, "Home"),
-      (Icons.map_rounded, Icons.map_outlined, "Map"),
-      (Icons.favorite_rounded, Icons.favorite_border, "Saved"),
-      (Icons.receipt_long_rounded, Icons.receipt_long_outlined, "Orders"),
+    final l10n = AppLocalizations.of(context)!;
+    final items = [
+      (Icons.home_rounded, Icons.home_outlined, l10n.navHome),
+      (Icons.map_rounded, Icons.map_outlined, l10n.navMap),
+      (Icons.favorite_rounded, Icons.favorite_border, l10n.navSaved),
+      (Icons.receipt_long_rounded, Icons.receipt_long_outlined, l10n.navOrders),
     ];
     return Container(
       height: 72,

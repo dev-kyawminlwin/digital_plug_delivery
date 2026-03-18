@@ -11,6 +11,10 @@ import 'screens/admin/admin_dashboard.dart';
 import 'screens/rider/rider_home.dart';
 import 'screens/customer/track_order_screen.dart';
 import 'screens/auth/welcome_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'l10n/app_localizations.dart';
+import 'providers/locale_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,7 +55,12 @@ void main() async {
   }
 
   print("DEBUG: Calling runApp");
-  runApp(const DigitalPlugApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => LocaleProvider(),
+      child: const DigitalPlugApp(),
+    ),
+  );
 }
 
 class DigitalPlugApp extends StatelessWidget {
@@ -60,10 +69,19 @@ class DigitalPlugApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = GoogleFonts.poppinsTextTheme();
+    final localeProvider = Provider.of<LocaleProvider>(context);
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Digital Plug Delivery',
+      locale: localeProvider.locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: ThemeData(
         useMaterial3: true,
         primaryColor: const Color(0xFFFF5E1E),

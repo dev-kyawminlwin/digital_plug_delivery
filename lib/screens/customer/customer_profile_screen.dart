@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import '../../providers/locale_provider.dart';
 
 class CustomerProfileScreen extends StatefulWidget {
   const CustomerProfileScreen({super.key});
@@ -263,6 +265,25 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                       ),
                       const SizedBox(height: 16),
 
+                      // Language Selection
+                      _sectionCard(
+                        title: "App Language",
+                        child: Consumer<LocaleProvider>(
+                          builder: (context, localeProvider, child) {
+                            return Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              children: [
+                                _buildLangChip(context, localeProvider, 'en', '🇺🇸 English'),
+                                _buildLangChip(context, localeProvider, 'th', '🇹🇭 ภาษาไทย'),
+                                _buildLangChip(context, localeProvider, 'zh', '🇨🇳 中文'),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
                       // Contact Info
                       _sectionCard(
                         title: "Contact Info",
@@ -458,6 +479,26 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildLangChip(BuildContext context, LocaleProvider localeProvider, String code, String label) {
+    final isSelected = localeProvider.locale.languageCode == code;
+    return ChoiceChip(
+      label: Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.grey.shade700, fontWeight: FontWeight.bold)),
+      selected: isSelected,
+      selectedColor: _kPrimary,
+      backgroundColor: Colors.white,
+      checkmarkColor: Colors.white,
+      onSelected: (selected) {
+        if (selected) {
+          localeProvider.setLocale(Locale(code));
+        }
+      },
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: isSelected ? _kPrimary : Colors.grey.shade300),
       ),
     );
   }
