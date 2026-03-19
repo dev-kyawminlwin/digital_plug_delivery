@@ -788,6 +788,7 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
                                           cart: _cart,
                                           onAddToCart: _addToCart,
                                           cartTotal: _cartTotal,
+                                          showProductModal: _showProductDetailsModal,
                                         ),
                                       ));
                                     },
@@ -1065,6 +1066,7 @@ class CategoryMenuPage extends StatefulWidget {
   final Map<String, Map<String, dynamic>> cart;
   final Function(ProductModel, int, Map<String, String>, List<Map<String, dynamic>>) onAddToCart;
   final double cartTotal;
+  final void Function(ProductModel)? showProductModal;
 
   const CategoryMenuPage({
     super.key,
@@ -1074,6 +1076,7 @@ class CategoryMenuPage extends StatefulWidget {
     required this.cart,
     required this.onAddToCart,
     required this.cartTotal,
+    this.showProductModal,
   });
 
   @override
@@ -1144,8 +1147,9 @@ class _CategoryMenuPageState extends State<CategoryMenuPage> {
               });
               return GestureDetector(
                 onTap: () {
-                  // Navigate back and let parent open modal (simplest approach)
-                  Navigator.pop(context);
+                  if (widget.showProductModal != null) {
+                    widget.showProductModal!(product);
+                  }
                 },
                 child: Container(
                   decoration: BoxDecoration(

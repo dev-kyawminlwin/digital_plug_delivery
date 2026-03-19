@@ -34,7 +34,7 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
   void initState() {
     super.initState();
     uid = FirebaseAuth.instance.currentUser?.uid ?? "";
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() => setState(() => _tabIndex = _tabController.index));
     if (uid.isNotEmpty) {
       _locationService = LocationService(uid: uid);
@@ -201,6 +201,7 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                           Tab(icon: const Icon(Icons.delivery_dining_rounded, size: 20), text: AppLocalizations.of(context)!.myOrders),
                           Tab(icon: const Icon(Icons.radar_rounded, size: 20), text: AppLocalizations.of(context)!.radar),
                           Tab(icon: const Icon(Icons.map_rounded, size: 20), text: AppLocalizations.of(context)!.fleetMap),
+                          const Tab(icon: Icon(Icons.account_balance_wallet_rounded, size: 20), text: 'Earnings'),
                         ],
                       ),
                     ],
@@ -216,6 +217,7 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                     _buildMyDeliveriesTab(data, walletBalance, collectedCash),
                     _buildOrderRadarTab(riderName),
                     const RiderFleetMapScreen(),
+                    _buildEarningsTab(),
                   ],
                 ),
               ),
@@ -539,6 +541,153 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
         elevation: 0,
       ),
       child: Text(stage.$1, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+    );
+  }
+
+  Widget _buildEarningsTab() {
+    if (uid.isEmpty) {
+      return const Center(child: Text('Please log in to view earnings', style: TextStyle(color: Colors.white54)));
+    }
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('orders')
+          .where('riderId', isEqualTo: uid)
+          .where('status', isEqualTo: 'completed')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        final docs = snapshot.data!.docs;
+
+        // Weekly totals (last 7 days)
+        final now = DateTime.now();
+        final weekAgo = now.subtract(const Duration(days: 7));
+        double weeklyTotal = 0;
+        int weeklyCount = 0;
+        double allTimeTotal = 0;
+
+        for (final doc in docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          final fee = (data['deliveryFee'] as num?)?.toDouble() ?? 0.0;
+          allTimeTotal += fee;
+          final ts = data['createdAt'];
+          if (ts != null && ts is Timestamp) {
+            final date = ts.toDate();
+            if (date.isAfter(weekAgo)) {
+              weeklyTotal += fee;
+              weeklyCount++;
+            }
+          }
+        }
+
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // ── Summary Cards ─────────────────────────────────────────────
+            Row(
+              children: [
+                _earningCard('This Week', 'THB ${weeklyTotal.toStringAsFixed(0)}', '$weeklyCount orders', const Color(0xFFFF5E1E)),
+                const SizedBox(width: 12),
+                _earningCard('All Time', 'THB ${allTimeTotal.toStringAsFixed(0)}', '${docs.length} orders', const Color(0xFF10B981)),
+              ],
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Completed Deliveries',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+
+            // ── Per-order list (newest first) ─────────────────────────────
+            if (docs.isEmpty)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  child: Column(
+                    children: [
+                      Icon(Icons.receipt_long_outlined, size: 56, color: Colors.white12),
+                      const SizedBox(height: 12),
+                      const Text('No completed deliveries yet', style: TextStyle(color: Colors.white38)),
+                    ],
+                  ),
+                ),
+              )
+            else
+              ...docs.reversed.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                final fee = (data['deliveryFee'] as num?)?.toDouble() ?? 0.0;
+                final name = data['customerName'] ?? 'Customer';
+                final address = data['address'] ?? '';
+                final ts = data['createdAt'];
+                String dateStr = '';
+                if (ts != null && ts is Timestamp) {
+                  final d = ts.toDate();
+                  dateStr = '${d.day}/${d.month}/${d.year}';
+                }
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: _kCard,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white.withOpacity(0.05)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: _kPrimary.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.delivery_dining_rounded, color: _kPrimary, size: 20),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                            const SizedBox(height: 2),
+                            Text(address, style: const TextStyle(color: Colors.white38, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            if (dateStr.isNotEmpty)
+                              Text(dateStr, style: const TextStyle(color: Colors.white24, fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        '+THB ${fee.toStringAsFixed(0)}',
+                        style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.w900, fontSize: 15),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _earningCard(String title, String amount, String subtitle, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: TextStyle(color: color.withOpacity(0.8), fontSize: 12, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            Text(amount, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20)),
+            const SizedBox(height: 4),
+            Text(subtitle, style: const TextStyle(color: Colors.white38, fontSize: 12)),
+          ],
+        ),
+      ),
     );
   }
 }

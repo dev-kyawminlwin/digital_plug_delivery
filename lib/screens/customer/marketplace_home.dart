@@ -23,6 +23,8 @@ class MarketplaceHome extends StatefulWidget {
 class _MarketplaceHomeState extends State<MarketplaceHome> {
   int _bottomNavIndex = 0;
   String _selectedCategory = 'All';
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   static const Color _kPrimary = Color(0xFFFF5E1E);
   static const Color _kGold = Color(0xFFEAB308);
@@ -169,44 +171,39 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
                 ),
                 const SizedBox(height: 24),
 
-                // Search Bar with Filter Button
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 5)),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            const SizedBox(width: 20),
-                            Icon(Icons.search, color: Colors.grey.shade400, size: 22),
-                            const SizedBox(width: 12),
-                            Text(AppLocalizations.of(context)!.findFood,
-                                style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
-                          ],
-                        ),
-                      ),
+                // Search Bar — now wired to filter shops
+                TextField(
+                  controller: _searchController,
+                  onChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
+                  decoration: InputDecoration(
+                    hintText: AppLocalizations.of(context)!.findFood,
+                    hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                    prefixIcon: Icon(Icons.search, color: Colors.grey.shade400, size: 22),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.close_rounded, size: 18),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _searchQuery = '');
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide.none,
                     ),
-                    const SizedBox(width: 12),
-                    Container(
-                      height: 56,
-                      width: 56,
-                      decoration: BoxDecoration(
-                        color: _kPrimary,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                            BoxShadow(color: _kPrimary.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4)),
-                        ],
-                      ),
-                      child: const Icon(Icons.tune_rounded, color: Colors.white),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide.none,
                     ),
-                  ],
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: const BorderSide(color: Color(0xFFFF5E1E), width: 1.5),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 28),
 
@@ -369,16 +366,23 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
           return const SliverFillRemaining(child: Center(child: CircularProgressIndicator()));
         }
 
-        final businesses = snapshot.data!.docs;
+        final allBusinesses = snapshot.data!.docs;
+        final businesses = _searchQuery.isEmpty
+            ? allBusinesses
+            : allBusinesses.where((doc) {
+                final name = ((doc.data() as Map<String, dynamic>)['name'] ?? '').toString().toLowerCase();
+                return name.contains(_searchQuery);
+              }).toList();
+
         if (businesses.isEmpty) {
           return SliverFillRemaining(
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.storefront_outlined, size: 80, color: Colors.grey.shade300),
+                  Icon(Icons.search_off_rounded, size: 80, color: Colors.grey.shade300),
                   const SizedBox(height: 16),
-                  Text("No restaurants open right now",
+                  Text(_searchQuery.isEmpty ? "No restaurants open right now" : 'No shops matching "$_searchQuery"',
                       style: TextStyle(fontSize: 16, color: Colors.grey.shade500)),
                 ],
               ),

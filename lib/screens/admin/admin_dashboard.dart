@@ -404,7 +404,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _navItem(0, Icons.receipt_long_rounded, Icons.receipt_long_outlined, AppLocalizations.of(context)!.tabOrders),
+                        // Orders tab — live badge for new orders
+                        StreamBuilder<QuerySnapshot>(
+                          stream: FirebaseFirestore.instance
+                              .collection('orders')
+                              .where('businessId', isEqualTo: bizData['id'] ?? doc.id)
+                              .where('status', isEqualTo: 'looking_for_rider')
+                              .snapshots(),
+                          builder: (ctx, orderSnap) {
+                            final count = orderSnap.data?.docs.length ?? 0;
+                            return _navItem(0, Icons.receipt_long_rounded, Icons.receipt_long_outlined, AppLocalizations.of(context)!.tabOrders, badgeCount: count);
+                          },
+                        ),
                         _navItem(1, Icons.storefront_rounded, Icons.storefront_outlined, AppLocalizations.of(context)!.tabShop),
                         _navItem(2, Icons.restaurant_menu_rounded, Icons.restaurant_menu_outlined, AppLocalizations.of(context)!.tabMenu),
                         _navItem(3, Icons.star_rounded, Icons.star_outline_rounded, AppLocalizations.of(context)!.tabRatings),
@@ -420,8 +431,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
         );
   }
 
-  Widget _navItem(int index, IconData activeIcon, IconData inactiveIcon, String label) {
+  Widget _navItem(int index, IconData activeIcon, IconData inactiveIcon, String label, {int badgeCount = 0}) {
     final isSelected = _currentIndex == index;
+    final iconWidget = Icon(
+      isSelected ? activeIcon : inactiveIcon,
+      color: isSelected ? Colors.white : Colors.grey.shade400,
+      size: 22,
+    );
     return Expanded(
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -437,11 +453,30 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 color: isSelected ? _kPrimary : Colors.transparent,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Icon(
-                isSelected ? activeIcon : inactiveIcon,
-                color: isSelected ? Colors.white : Colors.grey.shade400,
-                size: 22,
-              ),
+              child: badgeCount > 0
+                  ? Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        iconWidget,
+                        Positioned(
+                          top: -6,
+                          right: -10,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.white, width: 1.5),
+                            ),
+                            child: Text(
+                              badgeCount > 99 ? '99+' : '$badgeCount',
+                              style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : iconWidget,
             ),
             const SizedBox(height: 2),
             Text(

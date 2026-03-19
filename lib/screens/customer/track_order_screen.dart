@@ -163,6 +163,11 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
+
+                      // ── Animated Status Stepper ───────────────────────────
+                      _buildStatusStepper(order.status),
+
+                      const SizedBox(height: 20),
                       Row(
                         children: [
                           Container(
@@ -259,7 +264,34 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(color: Color(0xFFEA580C), fontWeight: FontWeight.bold)),
                           ),
-                        )
+                        ),
+
+                      // ── Review prompt when delivered ─────────────────────
+                      if (order.status == OrderStatus.completed)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: GestureDetector(
+                            onTap: () => _showReviewSheet(order),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFFEAB308), Color(0xFFF59E0B)],
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.star_rounded, color: Colors.white, size: 20),
+                                  SizedBox(width: 8),
+                                  Text('Rate Your Experience',
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -268,6 +300,181 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
           );
         },
       ),
+    );
+  }
+
+  void _showReviewSheet(order) async {
+    int _rating = 0;
+    final commentController = TextEditingController();
+    bool _submitted = false;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => Container(
+          padding: EdgeInsets.only(
+            left: 24, right: 24, top: 28,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: _submitted
+              ? Column(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 56),
+                  const SizedBox(height: 12),
+                  const Text('Thanks for the feedback!',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Text('Your review helps the community.',
+                      style: TextStyle(color: Colors.grey.shade500)),
+                  const SizedBox(height: 20),
+                ])
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('How was your experience?',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1F2937))),
+                    const SizedBox(height: 6),
+                    Text('Rate ${order.businessId}',
+                        style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+                    const SizedBox(height: 20),
+                    // Star row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (i) => GestureDetector(
+                        onTap: () => setSheet(() => _rating = i + 1),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          child: Icon(
+                            i < _rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                            color: const Color(0xFFEAB308),
+                            size: 44,
+                          ),
+                        ),
+                      )),
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: commentController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: 'Leave a comment (optional)...',
+                        filled: true,
+                        fillColor: const Color(0xFFF9FAFB),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF5E1E),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        onPressed: _rating == 0 ? null : () async {
+                          await FirebaseFirestore.instance.collection('reviews').add({
+                            'businessId': order.businessId,
+                            'orderId': order.id,
+                            'rating': _rating,
+                            'comment': commentController.text.trim(),
+                            'reviewerName': order.customerName,
+                            'createdAt': FieldValue.serverTimestamp(),
+                          });
+                          setSheet(() => _submitted = true);
+                        },
+                        child: const Text('Submit Review',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusStepper(OrderStatus status) {
+    final steps = [
+      (Icons.search_rounded, 'Finding\nRider', OrderStatus.lookingForRider),
+      (Icons.storefront_rounded, 'At\nShop', OrderStatus.assigned),
+      (Icons.delivery_dining_rounded, 'On\nThe Way', OrderStatus.pickedUp),
+      (Icons.check_circle_rounded, 'Delivered', OrderStatus.completed),
+    ];
+
+    int activeIdx = 0;
+    for (int i = 0; i < steps.length; i++) {
+      if (status == steps[i].$3) activeIdx = i;
+    }
+    if (status == OrderStatus.arrived) activeIdx = 3;
+
+    return Row(
+      children: List.generate(steps.length * 2 - 1, (i) {
+        if (i.isOdd) {
+          // Connector line
+          final filled = (i ~/ 2) < activeIdx;
+          return Expanded(
+            child: Container(
+              height: 3,
+              decoration: BoxDecoration(
+                color: filled ? const Color(0xFF10B981) : Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          );
+        }
+        final stepIdx = i ~/ 2;
+        final isDone = stepIdx < activeIdx;
+        final isActive = stepIdx == activeIdx;
+        final icon = steps[stepIdx].$1;
+        final label = steps[stepIdx].$2;
+        return Column(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 400),
+              width: isActive ? 44 : 36,
+              height: isActive ? 44 : 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isDone
+                    ? const Color(0xFF10B981)
+                    : isActive
+                        ? const Color(0xFFFF5E1E)
+                        : Colors.grey.shade100,
+                boxShadow: isActive
+                    ? [BoxShadow(color: const Color(0xFFFF5E1E).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))]
+                    : [],
+              ),
+              child: Icon(
+                isDone ? Icons.check_rounded : icon,
+                size: isActive ? 22 : 18,
+                color: (isDone || isActive) ? Colors.white : Colors.grey.shade400,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                color: isActive
+                    ? const Color(0xFFFF5E1E)
+                    : isDone
+                        ? const Color(0xFF10B981)
+                        : Colors.grey.shade400,
+                height: 1.3,
+              ),
+            ),
+          ],
+        );
+      }),
     );
   }
 
