@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import 'login_screen.dart';
+import '../../l10n/app_localizations.dart';
 
 class ShopRegistrationScreen extends StatefulWidget {
   const ShopRegistrationScreen({super.key});
@@ -12,9 +13,9 @@ class ShopRegistrationScreen extends StatefulWidget {
 class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
-  final _nameCtrl = TextEditingController(); // Admin name
-  final _bizNameCtrl = TextEditingController(); // Shop name
-  final _addressCtrl = TextEditingController(); // Shop address
+  final _nameCtrl = TextEditingController();
+  final _bizNameCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
   
   final _authService = AuthService();
   bool _isLoading = false;
@@ -31,6 +32,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
   }
 
   void _register() async {
+    final l = AppLocalizations.of(context)!;
     final name = _nameCtrl.text.trim();
     final bizName = _bizNameCtrl.text.trim();
     final address = _addressCtrl.text.trim();
@@ -39,7 +41,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
 
     if (name.isEmpty || bizName.isEmpty || email.isEmpty || pass.isEmpty || address.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: const Text("Please fill in all required fields."), backgroundColor: Colors.red.shade700),
+        SnackBar(content: Text(l.fillAllFields), backgroundColor: Colors.red.shade700),
       );
       return;
     }
@@ -51,10 +53,10 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
         password: pass,
         businessName: bizName,
         adminName: name,
-        address: address, // NEW Field
+        address: address,
       );
       if (mounted) {
-        Navigator.pop(context); // Go back to start
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
@@ -68,6 +70,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
@@ -84,7 +87,6 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Icon
               Center(
                 child: Container(
                   width: 80,
@@ -98,27 +100,23 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
               ),
               const SizedBox(height: 32),
 
-              // Headers
-              const Text("Shop Owner", style: TextStyle(fontSize: 16, color: Color(0xFFFF5E1E), fontWeight: FontWeight.bold)),
+              Text(l.shopOwnerLabel, style: const TextStyle(fontSize: 16, color: Color(0xFFFF5E1E), fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              const Text("Open Shop", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF1F2937), letterSpacing: -0.5)),
+              Text(l.openShop, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF1F2937), letterSpacing: -0.5)),
               const SizedBox(height: 8),
-              const Text("Register your business to start delivering items.", style: TextStyle(fontSize: 14, color: Color(0xFF6B7280), height: 1.5)),
+              Text(l.openShopSubtitle, style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280), height: 1.5)),
               const SizedBox(height: 48),
 
-              // Business Details
-              _buildFloatingField(controller: _bizNameCtrl, hintText: "Shop Name", icon: Icons.storefront_outlined),
+              _buildFloatingField(controller: _bizNameCtrl, hintText: l.shopNameHint, icon: Icons.storefront_outlined),
               const SizedBox(height: 16),
-              _buildFloatingField(controller: _nameCtrl, hintText: "Owner Full Name", icon: Icons.person_outline),
+              _buildFloatingField(controller: _nameCtrl, hintText: l.ownerFullNameHint, icon: Icons.person_outline),
               const SizedBox(height: 16),
-              _buildFloatingField(controller: _addressCtrl, hintText: "Shop Address", icon: Icons.location_on_outlined, maxLines: 2),
+              _buildFloatingField(controller: _addressCtrl, hintText: l.shopAddressHint, icon: Icons.location_on_outlined, maxLines: 2),
               const SizedBox(height: 32),
 
-              // Account Details
-              _buildFloatingField(controller: _emailCtrl, hintText: "Email Address", icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
+              _buildFloatingField(controller: _emailCtrl, hintText: l.emailAddressHint, icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
               const SizedBox(height: 16),
               
-              // Password
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -129,7 +127,7 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
                   controller: _passCtrl,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
-                    hintText: "Password",
+                    hintText: l.passwordHint,
                     hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 15),
                     prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF9CA3AF), size: 22),
                     suffixIcon: IconButton(
@@ -147,7 +145,6 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
               
               const SizedBox(height: 48),
 
-              // Button
               ElevatedButton(
                 onPressed: _isLoading ? null : _register,
                 style: ElevatedButton.styleFrom(
@@ -160,18 +157,17 @@ class _ShopRegistrationScreenState extends State<ShopRegistrationScreen> {
                 ),
                 child: _isLoading
                     ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
-                    : const Text("Open Shop", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    : Text(l.openShop, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 48),
 
-              // Bottom links
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                   const Text("Already a partner? ", style: TextStyle(color: Color(0xFF6B7280), fontSize: 15)),
+                  Text(l.alreadyPartner, style: const TextStyle(color: Color(0xFF6B7280), fontSize: 15)),
                   GestureDetector(
                     onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
-                    child: const Text("Sign In", style: TextStyle(color: Color(0xFFFF5E1E), fontWeight: FontWeight.bold, fontSize: 15)),
+                    child: Text(l.signIn, style: const TextStyle(color: Color(0xFFFF5E1E), fontWeight: FontWeight.bold, fontSize: 15)),
                   ),
                 ],
               ),

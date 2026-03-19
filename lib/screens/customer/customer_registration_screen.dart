@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../auth/login_screen.dart';
+import '../../l10n/app_localizations.dart';
 
 class CustomerRegistrationScreen extends StatefulWidget {
   const CustomerRegistrationScreen({super.key});
@@ -30,6 +31,7 @@ class _CustomerRegistrationScreenState extends State<CustomerRegistrationScreen>
   }
 
   void _register() async {
+    final l = AppLocalizations.of(context)!;
     final name = _nameCtrl.text.trim();
     final phone = _phoneCtrl.text.trim();
     final email = _emailCtrl.text.trim();
@@ -37,7 +39,7 @@ class _CustomerRegistrationScreenState extends State<CustomerRegistrationScreen>
     if (name.isEmpty || phone.isEmpty || email.isEmpty || pass.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text("Please fill in all required fields."),
+          content: Text(l.fillAllFields),
           backgroundColor: Colors.red.shade700,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -74,6 +76,7 @@ class _CustomerRegistrationScreenState extends State<CustomerRegistrationScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
@@ -90,7 +93,6 @@ class _CustomerRegistrationScreenState extends State<CustomerRegistrationScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Icon
               Center(
                 child: Container(
                   width: 80,
@@ -104,27 +106,23 @@ class _CustomerRegistrationScreenState extends State<CustomerRegistrationScreen>
               ),
               const SizedBox(height: 32),
 
-              // Headers
-              const Text("Customer", style: TextStyle(fontSize: 16, color: Color(0xFFFF5E1E), fontWeight: FontWeight.bold)),
+              Text(l.customerLabel, style: const TextStyle(fontSize: 16, color: Color(0xFFFF5E1E), fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              const Text("Create Account", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF1F2937), letterSpacing: -0.5)),
+              Text(l.createAccount, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF1F2937), letterSpacing: -0.5)),
               const SizedBox(height: 8),
-              const Text("Enter your personal details to get started.", style: TextStyle(fontSize: 14, color: Color(0xFF6B7280), height: 1.5)),
+              Text(l.createAccountSubtitle, style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280), height: 1.5)),
               const SizedBox(height: 48),
 
-              // Personal Info
-              _buildFloatingField(controller: _nameCtrl, hintText: "Full Name", icon: Icons.person_outline),
+              _buildFloatingField(controller: _nameCtrl, hintText: l.fullNameHint, icon: Icons.person_outline),
               const SizedBox(height: 16),
-              _buildFloatingField(controller: _phoneCtrl, hintText: "Phone Number", icon: Icons.phone_outlined, keyboardType: TextInputType.phone),
+              _buildFloatingField(controller: _phoneCtrl, hintText: l.phoneHint, icon: Icons.phone_outlined, keyboardType: TextInputType.phone),
               const SizedBox(height: 16),
-              _buildFloatingField(controller: _addressCtrl, hintText: "Delivery Address (optional)", icon: Icons.location_on_outlined, maxLines: 2),
+              _buildFloatingField(controller: _addressCtrl, hintText: l.deliveryAddressHint, icon: Icons.location_on_outlined, maxLines: 2),
               const SizedBox(height: 32),
 
-              // Account Info
-              _buildFloatingField(controller: _emailCtrl, hintText: "Email Address", icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
+              _buildFloatingField(controller: _emailCtrl, hintText: l.emailAddressHint, icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
               const SizedBox(height: 16),
               
-              // Password
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -135,7 +133,7 @@ class _CustomerRegistrationScreenState extends State<CustomerRegistrationScreen>
                   controller: _passCtrl,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
-                    hintText: "Password",
+                    hintText: l.passwordHint,
                     hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 15),
                     prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF9CA3AF), size: 22),
                     suffixIcon: IconButton(
@@ -153,7 +151,6 @@ class _CustomerRegistrationScreenState extends State<CustomerRegistrationScreen>
               
               const SizedBox(height: 48),
 
-              // Button
               ElevatedButton(
                 onPressed: _isLoading ? null : _register,
                 style: ElevatedButton.styleFrom(
@@ -166,18 +163,17 @@ class _CustomerRegistrationScreenState extends State<CustomerRegistrationScreen>
                 ),
                 child: _isLoading
                     ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
-                    : const Text("Sign Up", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    : Text(l.signUp, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 48),
 
-              // Bottom links
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Already have an account? ", style: TextStyle(color: Color(0xFF6B7280), fontSize: 15)),
+                  Text(l.alreadyAccount, style: const TextStyle(color: Color(0xFF6B7280), fontSize: 15)),
                   GestureDetector(
                     onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
-                    child: const Text("Sign In", style: TextStyle(color: Color(0xFFFF5E1E), fontWeight: FontWeight.bold, fontSize: 15)),
+                    child: Text(l.signIn, style: const TextStyle(color: Color(0xFFFF5E1E), fontWeight: FontWeight.bold, fontSize: 15)),
                   ),
                 ],
               ),

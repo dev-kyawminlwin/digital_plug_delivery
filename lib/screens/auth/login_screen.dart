@@ -9,6 +9,7 @@ import '../rider/rider_home.dart';
 import '../customer/marketplace_home.dart';
 import 'welcome_screen.dart';
 import '../shared/guest_language_switcher.dart';
+import '../../l10n/app_localizations.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -53,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     final email = emailController.text.trim();
     final pass = passwordController.text.trim();
     if (email.isEmpty || pass.isEmpty) {
-      _showError("Please enter your email and password.");
+      _showError(AppLocalizations.of(context)!.fillAllFields);
       return;
     }
     setState(() => isLoading = true);
@@ -98,7 +99,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         }
       }
     } catch (e) {
-      // General catch block (Firebase exceptions will be thrown from the service)
       _showError("Error: ${e.toString()}");
     } finally {
       if (mounted) setState(() => isLoading = false);
@@ -124,8 +124,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB), // Clean off-white background
+      backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -163,23 +164,22 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   const SizedBox(height: 32),
 
                   // Header Texts
-                  const Text("Tachileik Delivery", style: TextStyle(fontSize: 16, color: Color(0xFFFF5E1E), fontWeight: FontWeight.bold)),
+                  Text(l.tachileikDelivery, style: const TextStyle(fontSize: 16, color: Color(0xFFFF5E1E), fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  const Text("Welcome Back!", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF1F2937), letterSpacing: -0.5)),
+                  Text(l.welcomeBack, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF1F2937), letterSpacing: -0.5)),
                   const SizedBox(height: 8),
-                  const Text("Log in to your account with your email and password.", style: TextStyle(fontSize: 14, color: Color(0xFF6B7280), height: 1.5)),
+                  Text(l.loginSubtitle, style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280), height: 1.5)),
                   const SizedBox(height: 48),
 
-                  // Custom floating inputs
                   _buildFloatingField(
                     controller: emailController,
-                    hintText: "Email",
+                    hintText: l.emailHint,
                     icon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
                   ),
                   const SizedBox(height: 20),
                   
-                  // Password with obscure toggle
+                  // Password field
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -190,7 +190,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       controller: passwordController,
                       obscureText: _obscurePassword,
                       decoration: InputDecoration(
-                        hintText: "Password",
+                        hintText: l.passwordHint,
                         hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 15),
                         prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF9CA3AF), size: 22),
                         suffixIcon: IconButton(
@@ -220,33 +220,30 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             activeColor: const Color(0xFFFF5E1E),
                             onChanged: (v) => setState(() => _rememberMe = v),
                           ),
-                          const Text("Save me", style: TextStyle(color: Color(0xFF6B7280), fontSize: 14, fontWeight: FontWeight.w500)),
+                          Text(l.saveMe, style: const TextStyle(color: Color(0xFF6B7280), fontSize: 14, fontWeight: FontWeight.w500)),
                         ],
                       ),
-                      const Text("Forgot Password?", style: TextStyle(color: Color(0xFF6B7280), fontSize: 14, fontWeight: FontWeight.w500)),
+                      Text(l.forgotPassword, style: const TextStyle(color: Color(0xFF6B7280), fontSize: 14, fontWeight: FontWeight.w500)),
                     ],
                   ),
                   
                   const SizedBox(height: 32),
 
-                  // Reusable Login Button Architecture
                   PrimaryButton(
-                    label: "Login",
+                    label: l.loginBtn,
                     onPressed: login,
                     isLoading: isLoading,
                   ),
                   
                   const SizedBox(height: 48),
 
-                  // Bottom links
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text("Don't have an account? ", style: TextStyle(color: Color(0xFF6B7280), fontSize: 15)),
+                      Text(l.noAccount, style: const TextStyle(color: Color(0xFF6B7280), fontSize: 15)),
                       GestureDetector(
-                        // Open the shared registration modal instead of routing away
                         onTap: () => WelcomeScreen.showRegistrationOptions(context),
-                        child: const Text("Sign Up", style: TextStyle(color: Color(0xFFFF5E1E), fontWeight: FontWeight.bold, fontSize: 15)),
+                        child: Text(l.signUp, style: const TextStyle(color: Color(0xFFFF5E1E), fontWeight: FontWeight.bold, fontSize: 15)),
                       ),
                     ],
                   ),

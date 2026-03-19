@@ -20,7 +20,7 @@ class LocaleProvider extends ChangeNotifier {
   }
 
   void setLocale(Locale tempLocale) async {
-    if (!['en', 'th', 'zh'].contains(tempLocale.languageCode)) return;
+    if (!['en', 'my', 'th', 'zh'].contains(tempLocale.languageCode)) return;
     _locale = tempLocale;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();

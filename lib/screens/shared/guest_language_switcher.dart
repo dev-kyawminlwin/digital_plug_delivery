@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/locale_provider.dart';
 
+/// Light variant — used on auth screens (white card background)
 class GuestLanguageSwitcher extends StatelessWidget {
   const GuestLanguageSwitcher({super.key});
 
@@ -39,13 +40,47 @@ class GuestLanguageSwitcher extends StatelessWidget {
           onSelected: (code) {
             localeProvider.setLocale(Locale(code));
           },
-          itemBuilder: (context) => [
-            const PopupMenuItem(value: 'en', child: Text('🇺🇸 English', style: TextStyle(fontWeight: FontWeight.w600))),
-            const PopupMenuItem(value: 'th', child: Text('🇹🇭 ภาษาไทย', style: TextStyle(fontWeight: FontWeight.w600))),
-            const PopupMenuItem(value: 'zh', child: Text('🇨🇳 中文', style: TextStyle(fontWeight: FontWeight.w600))),
-          ],
+          itemBuilder: (context) => _menuItems,
         );
       },
     );
   }
 }
+
+/// Dark/glass variant — used on role dashboards with dark/gradient headers
+class DashboardLanguageSwitcher extends StatelessWidget {
+  const DashboardLanguageSwitcher({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<LocaleProvider>(
+      builder: (context, localeProvider, child) {
+        return PopupMenuButton<String>(
+          offset: const Offset(0, 44),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+            ),
+            child: const Icon(Icons.language_rounded, color: Colors.white, size: 20),
+          ),
+          onSelected: (code) {
+            localeProvider.setLocale(Locale(code));
+          },
+          itemBuilder: (context) => _menuItems,
+        );
+      },
+    );
+  }
+}
+
+const _menuItems = [
+  PopupMenuItem(value: 'en', child: Text('🇺🇸 English', style: TextStyle(fontWeight: FontWeight.w600))),
+  PopupMenuItem(value: 'my', child: Text('🇲🇲 မြန်မာ', style: TextStyle(fontWeight: FontWeight.w600))),
+  PopupMenuItem(value: 'th', child: Text('🇹🇭 ภาษาไทย', style: TextStyle(fontWeight: FontWeight.w600))),
+  PopupMenuItem(value: 'zh', child: Text('🇨🇳 中文', style: TextStyle(fontWeight: FontWeight.w600))),
+];

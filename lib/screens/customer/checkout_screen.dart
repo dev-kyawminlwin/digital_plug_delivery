@@ -140,9 +140,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
 
     try {
+      final uid = FirebaseAuth.instance.currentUser?.uid ?? 'guest';
       Map<String, dynamic> orderData = {
         'businessId': widget.businessId,
-        'customerId': FirebaseAuth.instance.currentUser!.uid,
+        'customerId': uid,
+        'isGuestOrder': uid == 'guest',
         'customerName': _nameController.text,
         'phone': _phoneController.text,
         'address': _addressController.text,

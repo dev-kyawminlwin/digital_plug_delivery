@@ -12,12 +12,13 @@ import '../../services/business_service.dart';
 import '../../services/order_service.dart';
 import '../../services/seed_service.dart';
 import '../shared/app_components.dart';
+import '../shared/guest_language_switcher.dart';
+import '../../l10n/app_localizations.dart';
 import 'menu_manager_tab.dart';
 import 'vendor_ratings_tab.dart';
 import 'vendor_ledger_tab.dart';
 import 'vendor_fleet_tab.dart';
 import '../../models/order_model.dart';
-import '../../services/order_service.dart';
 import '../../services/image_helper.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -86,17 +87,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
     };
   }
 
-  String get _currentTabTitle {
+  // Tab titles are now resolved within the build context (see _tabTitle())
+  String _tabTitle(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     switch (_currentIndex) {
-      case 0: return "Live Orders";
-      case 1: return "My Shop";
-      case 2: return "Menu Manager";
-      case 3: return "Ratings";
-      case 4: return "Ledger";
-      case 5: return "Fleet";
-      default: return "Admin Dashboard";
+      case 0: return l.liveOrders;
+      case 1: return l.myShop;
+      case 2: return l.menuManager;
+      case 3: return l.tabRatings;
+      case 4: return l.tabLedger;
+      case 5: return l.tabFleet;
+      default: return l.adminDashboard;
     }
   }
+
+  // Keep this as a fallback String getter (unused now but avoids breaking anything)
+  String get _currentTabTitle => 'Admin Dashboard';
 
   Color _hexToColor(String hex) {
     hex = hex.replaceAll('#', '');
@@ -238,46 +244,74 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
             return Scaffold(
               backgroundColor: const Color(0xFFF9FAFB),
+              extendBodyBehindAppBar: false,
               body: Column(
                 children: [
-                  _buildSubscriptionBanner(bizData),
-                  // Gradient Header
+                  // ── Premium Gradient Header ───────────────────────────
                   Container(
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [Color(0xFFFF5E1E), Color(0xFFD94A1A)],
+                        colors: [Color(0xFFFF6B35), Color(0xFFFF5E1E), Color(0xFFD94A1A)],
                       ),
                     ),
                     child: SafeArea(
                       bottom: false,
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        padding: const EdgeInsets.fromLTRB(20, 10, 16, 14),
+                        child: Column(
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Text(
-                                  bizName,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
+                                // Shop logo thumbnail
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1.5),
+                                  ),
+                                  child: ClipOval(
+                                    child: (bizData['logoUrl'] != null && (bizData['logoUrl'] as String).isNotEmpty)
+                                      ? Image.network(bizData['logoUrl'], fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => const Icon(Icons.storefront_rounded, color: Colors.white, size: 22))
+                                      : const Icon(Icons.storefront_rounded, color: Colors.white, size: 22),
                                   ),
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  _currentTabTitle,
-                                  style: const TextStyle(color: Colors.white60, fontSize: 13),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        bizName,
+                                        style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold, letterSpacing: -0.3),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Row(
+                                        children: [
+                                          Container(
+                                            width: 6, height: 6,
+                                            decoration: BoxDecoration(
+                                              color: (bizData['subscriptionStatus'] == 'active') ? const Color(0xFF4ADE80) : Colors.red.shade300,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 5),
+                                          Text(
+                                            _tabTitle(context),
+                                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ],
-                            ),
-                            Row(
-                              children: [
-                                // Live order count badge
+                                // Live orders badge
                                 StreamBuilder<QuerySnapshot>(
                                   stream: FirebaseFirestore.instance
                                       .collection('orders')
@@ -286,26 +320,26 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                       .snapshots(),
                                   builder: (context, snap) {
                                     if (!snap.hasData) return const SizedBox.shrink();
-                                    
-                                    final liveDocs = snap.data!.docs;
-                                    
-                                    final count = liveDocs.length;
+                                    final count = snap.data!.docs.length;
                                     if (count == 0) return const SizedBox.shrink();
                                     return Container(
-                                      margin: const EdgeInsets.only(right: 12),
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                      margin: const EdgeInsets.only(right: 8),
+                                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: Colors.red,
+                                        color: Colors.red.shade600,
                                         borderRadius: BorderRadius.circular(20),
+                                        boxShadow: [BoxShadow(color: Colors.red.withValues(alpha: 0.4), blurRadius: 6)],
                                       ),
                                       child: Text(
-                                        "$count Live",
-                                        style: const TextStyle(
-                                            color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                                        '$count Live',
+                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
                                       ),
                                     );
                                   },
                                 ),
+                                // Language switcher
+                                const DashboardLanguageSwitcher(),
+                                const SizedBox(width: 8),
                                 // Profile / Logout
                                 GestureDetector(
                                   onTap: () {
@@ -313,16 +347,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                       context: context,
                                       builder: (_) => AlertDialog(
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                        title: Text("Hi, $adminName"),
-                                        content: const Text("What would you like to do?"),
+                                        title: Text('Hi, $adminName 👋'),
+                                        content: const Text('What would you like to do?'),
                                         actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.pop(context),
-                                            child: const Text("Cancel"),
-                                          ),
+                                          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
                                           ElevatedButton.icon(
                                             icon: const Icon(Icons.logout),
-                                            label: const Text("Log Out"),
+                                            label: const Text('Log Out'),
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor: Colors.red,
                                               foregroundColor: Colors.white,
@@ -331,7 +362,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                             onPressed: () async {
                                               Navigator.pop(context);
                                               await FirebaseAuth.instance.signOut();
-                                              // AuthGate StreamBuilder handles redirect automatically
                                             },
                                           ),
                                         ],
@@ -339,17 +369,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                     );
                                   },
                                   child: Container(
-                                    width: 40,
-                                    height: 40,
+                                    width: 40, height: 40,
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.2),
+                                      color: Colors.white.withValues(alpha: 0.18),
                                       shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
                                     ),
                                     child: const Icon(Icons.person_rounded, color: Colors.white, size: 22),
                                   ),
                                 ),
                               ],
                             ),
+                            _buildSubscriptionBanner(bizData),
                           ],
                         ),
                       ),
@@ -363,22 +394,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, -4)),
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 20, offset: const Offset(0, -4)),
                   ],
                 ),
                 child: SafeArea(
                   top: false,
-                  child: SizedBox(
-                    height: 64,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _navItem(0, Icons.receipt_long_rounded, Icons.receipt_long_outlined, "Orders"),
-                        _navItem(1, Icons.storefront_rounded, Icons.storefront_outlined, "Shop"),
-                        _navItem(2, Icons.restaurant_menu_rounded, Icons.restaurant_menu_outlined, "Menu"),
-                        _navItem(3, Icons.star_rounded, Icons.star_outline_rounded, "Ratings"),
-                        _navItem(4, Icons.account_balance_wallet_rounded, Icons.account_balance_wallet_outlined, "Ledger"),
-                        _navItem(5, Icons.motorcycle_rounded, Icons.motorcycle_rounded, "Fleet"),
+                        _navItem(0, Icons.receipt_long_rounded, Icons.receipt_long_outlined, AppLocalizations.of(context)!.tabOrders),
+                        _navItem(1, Icons.storefront_rounded, Icons.storefront_outlined, AppLocalizations.of(context)!.tabShop),
+                        _navItem(2, Icons.restaurant_menu_rounded, Icons.restaurant_menu_outlined, AppLocalizations.of(context)!.tabMenu),
+                        _navItem(3, Icons.star_rounded, Icons.star_outline_rounded, AppLocalizations.of(context)!.tabRatings),
+                        _navItem(4, Icons.account_balance_wallet_rounded, Icons.account_balance_wallet_outlined, AppLocalizations.of(context)!.tabLedger),
+                        _navItem(5, Icons.motorcycle_rounded, Icons.motorcycle_outlined, AppLocalizations.of(context)!.tabFleet),
                       ],
                     ),
                   ),
@@ -395,20 +426,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => setState(() => _currentIndex = index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-          decoration: BoxDecoration(
-            color: isSelected ? _kPrimary.withValues(alpha: 0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-            Icon(
-              isSelected ? activeIcon : inactiveIcon,
-              color: isSelected ? _kPrimary : Colors.grey.shade400,
-              size: 22,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected ? _kPrimary : Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                isSelected ? activeIcon : inactiveIcon,
+                color: isSelected ? Colors.white : Colors.grey.shade400,
+                size: 22,
+              ),
             ),
             const SizedBox(height: 2),
             Text(
@@ -424,7 +457,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ],
         ),
       ),
-    ));
+    );
   }
 
   // ─── TAB 0: LIVE ORDERS ───────────────────────────────────────────────
@@ -560,7 +593,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Widget _buildSubscriptionBanner(Map<String, dynamic> bizData) {
     if (bizData.isEmpty) return const SizedBox.shrink();
-    
     final status = bizData['subscriptionStatus'] as String? ?? 'inactive';
     final sl = bizData['subscriptionEnd'];
     DateTime? subEnd;
@@ -569,32 +601,38 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
     if (status != 'active' || subEnd == null) {
       return Container(
-        color: Colors.red.shade600,
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        child: const Text("⚠️ Subscription Inactive - Please Renew to accept orders.", 
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13), textAlign: TextAlign.center),
+        margin: const EdgeInsets.only(top: 10),
+        padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 14),
+        decoration: BoxDecoration(
+          color: Colors.red.shade700.withValues(alpha: 0.85),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Row(children: [
+          Icon(Icons.warning_amber_rounded, color: Colors.white, size: 14),
+          SizedBox(width: 6),
+          Expanded(child: Text('Subscription Inactive — Please Renew.',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))),
+        ]),
       );
     }
-    
     final daysLeft = subEnd.difference(DateTime.now()).inDays;
     if (daysLeft <= 7) {
       return Container(
-        color: Colors.orange.shade700,
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        child: Text("⚠️ Plan: Active • Expires in $daysLeft Days", 
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13), textAlign: TextAlign.center),
+        margin: const EdgeInsets.only(top: 10),
+        padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 14),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade800.withValues(alpha: 0.85),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(children: [
+          const Icon(Icons.schedule_rounded, color: Colors.white, size: 14),
+          const SizedBox(width: 6),
+          Text('Plan expires in $daysLeft days',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+        ]),
       );
     }
-    
-    return Container(
-      color: Colors.green.shade600,
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-      child: Text("✅ Plan: Active • Expires in $daysLeft Days", 
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center),
-    );
+    return const SizedBox.shrink(); // Healthy — no banner needed
   }
 
   Widget _buildTrendingInsights(String businessId) {

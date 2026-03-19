@@ -7,6 +7,8 @@ import '../../services/order_service.dart';
 import '../../services/location_service.dart';
 import 'rider_fleet_map_screen.dart';
 import '../shared/chat_screen.dart';
+import '../shared/guest_language_switcher.dart';
+import '../../l10n/app_localizations.dart';
 
 class RiderHome extends StatefulWidget {
   const RiderHome({super.key});
@@ -94,12 +96,12 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Row(
+                                Row(
                                   children: [
-                                    Icon(Icons.motorcycle_rounded, color: _kPrimary, size: 18),
-                                    SizedBox(width: 6),
-                                    Text("RIDER PANEL",
-                                        style: TextStyle(color: _kPrimary, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1.2)),
+                                    const Icon(Icons.motorcycle_rounded, color: _kPrimary, size: 18),
+                                    const SizedBox(width: 6),
+                                    Text(AppLocalizations.of(context)!.riderPanel,
+                                        style: const TextStyle(color: _kPrimary, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1.2)),
                                   ],
                                 ),
                                 const SizedBox(height: 4),
@@ -122,8 +124,8 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                                     decoration: BoxDecoration(
                                       color: isAvailable
-                                          ? _kPrimary.withValues(alpha: 0.2)
-                                          : Colors.white.withValues(alpha: 0.08),
+                                          ? _kPrimary.withOpacity(0.2)
+                                          : Colors.white.withOpacity(0.08),
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(
                                         color: isAvailable ? _kPrimary : Colors.white24,
@@ -141,7 +143,7 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                                         ),
                                         const SizedBox(width: 6),
                                         Text(
-                                          isAvailable ? "Online" : "Offline",
+                                          isAvailable ? AppLocalizations.of(context)!.online : AppLocalizations.of(context)!.offline,
                                           style: TextStyle(
                                             color: isAvailable ? _kPrimary : Colors.white60,
                                             fontWeight: FontWeight.bold,
@@ -153,6 +155,9 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                                   ),
                                 ),
                                 const SizedBox(width: 10),
+                                // Language switcher
+                                const DashboardLanguageSwitcher(),
+                                const SizedBox(width: 10),
                                 // Logout
                                 GestureDetector(
                                   onTap: _logout,
@@ -160,7 +165,7 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                                     width: 38,
                                     height: 38,
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.08),
+                                      color: Colors.white.withOpacity(0.08),
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(Icons.logout_rounded, color: Colors.white60, size: 18),
@@ -177,9 +182,9 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Row(
                           children: [
-                            _walletChip("💰 Wallet", "THB ${walletBalance.toStringAsFixed(0)}", _kPrimary),
+                            _walletChip("💰 ${AppLocalizations.of(context)!.wallet}", "THB ${walletBalance.toStringAsFixed(0)}", _kPrimary),
                             const SizedBox(width: 12),
-                            _walletChip("💵 Cash to Drop", "THB ${collectedCash.toStringAsFixed(0)}", Colors.redAccent),
+                            _walletChip("💵 ${AppLocalizations.of(context)!.cashToDrop}", "THB ${collectedCash.toStringAsFixed(0)}", Colors.redAccent),
                           ],
                         ),
                       ),
@@ -192,10 +197,10 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                         labelColor: _kPrimary,
                         unselectedLabelColor: Colors.white38,
                         labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                        tabs: const [
-                          Tab(icon: Icon(Icons.delivery_dining_rounded, size: 20), text: "My Orders"),
-                          Tab(icon: Icon(Icons.radar_rounded, size: 20), text: "Radar"),
-                          Tab(icon: Icon(Icons.map_rounded, size: 20), text: "Fleet Map"),
+                        tabs: [
+                          Tab(icon: const Icon(Icons.delivery_dining_rounded, size: 20), text: AppLocalizations.of(context)!.myOrders),
+                          Tab(icon: const Icon(Icons.radar_rounded, size: 20), text: AppLocalizations.of(context)!.radar),
+                          Tab(icon: const Icon(Icons.map_rounded, size: 20), text: AppLocalizations.of(context)!.fleetMap),
                         ],
                       ),
                     ],

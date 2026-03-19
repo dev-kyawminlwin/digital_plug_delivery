@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/auth_service.dart';
+import '../shared/guest_language_switcher.dart';
 
 class SuperAdminDashboard extends StatefulWidget {
   const SuperAdminDashboard({super.key});
@@ -61,40 +62,47 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                                 color: Colors.white, fontSize: 19, fontWeight: FontWeight.bold)),
                       ],
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (_) => AlertDialog(
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                            title: const Text('Founder Account'),
-                            content: const Text('Sign out from the Founder Dashboard?'),
-                            actions: [
-                              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-                              ElevatedButton.icon(
-                                icon: const Icon(Icons.logout),
-                                label: const Text('Log Out'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red,
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                                onPressed: () async {
-                                  Navigator.pop(context);
-                                  await FirebaseAuth.instance.signOut();
-                                },
+                    Row(
+                      children: [
+                        // Language switcher
+                        const DashboardLanguageSwitcher(),
+                        const SizedBox(width: 10),
+                        GestureDetector(
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (_) => AlertDialog(
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                title: const Text('Founder Account'),
+                                content: const Text('Sign out from the Founder Dashboard?'),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                                  ElevatedButton.icon(
+                                    icon: const Icon(Icons.logout),
+                                    label: const Text('Log Out'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red,
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                    onPressed: () async {
+                                      Navigator.pop(context);
+                                      await FirebaseAuth.instance.signOut();
+                                    },
+                                  ),
+                                ],
                               ),
-                            ],
+                            );
+                          },
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.15), shape: BoxShape.circle),
+                            child: const Icon(Icons.person_rounded, color: Colors.white, size: 22),
                           ),
-                        );
-                      },
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15), shape: BoxShape.circle),
-                        child: const Icon(Icons.person_rounded, color: Colors.white, size: 22),
-                      ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
