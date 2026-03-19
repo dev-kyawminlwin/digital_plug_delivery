@@ -190,8 +190,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
 
     final discount = type == 'percent'
-        ? (widget.subtotal * value / 100).clamp(0, widget.subtotal)
-        : value.clamp(0, widget.subtotal);
+        ? (widget.subtotal * value / 100).clamp(0, widget.subtotal).toDouble()
+        : value.clamp(0, widget.subtotal).toDouble();
 
     setState(() {
       _couponStatus = 'valid';
