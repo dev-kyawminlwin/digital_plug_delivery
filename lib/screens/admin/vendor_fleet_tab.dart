@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../shared/chat_screen.dart';
 
 class VendorFleetTab extends StatelessWidget {
   final String businessId;
@@ -160,7 +161,7 @@ class VendorFleetTab extends StatelessWidget {
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500),
                               ),
-                              trailing: Row(
+                                trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Column(
@@ -172,7 +173,27 @@ class VendorFleetTab extends StatelessWidget {
                                       const Text("wallet", style: TextStyle(fontSize: 10, color: Colors.grey)),
                                     ],
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: 4),
+                                  // Chat button
+                                  IconButton(
+                                    icon: const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFFFF5E1E), size: 20),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    tooltip: 'Message Rider',
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => ChatScreen(
+                                            orderId: 'admin_rider_${doc.id}',
+                                            otherPartyName: data['name'] ?? 'Rider',
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(width: 4),
+                                  // Reset wallet button
                                   IconButton(
                                     icon: const Icon(Icons.cleaning_services_rounded, color: Colors.grey, size: 20),
                                     padding: EdgeInsets.zero,

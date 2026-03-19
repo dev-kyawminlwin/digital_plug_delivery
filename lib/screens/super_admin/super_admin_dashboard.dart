@@ -568,6 +568,155 @@ class _ShopsTabState extends State<_ShopsTab> {
   @override
   Widget build(BuildContext context) {
     return Column(children: [
+      // ── PENDING APPROVALS ─────────────────────────────────────────────────
+      StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('businesses')
+            .where('status', isEqualTo: 'pending')
+            .snapshots(),
+        builder: (ctx, pendSnap) {
+          final pending = pendSnap.data?.docs ?? [];
+          if (pending.isEmpty) return const SizedBox.shrink();
+          return Container(
+            margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFBEB),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFFBBF24), width: 1.5),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                  child: Row(children: [
+                    const Icon(Icons.pending_actions_rounded, color: Color(0xFFF59E0B), size: 20),
+                    const SizedBox(width: 8),
+                    Text('${pending.length} Shop${pending.length > 1 ? 's' : ''} Awaiting Approval',
+                        style: const TextStyle(fontWeight: FontWeight.bold,
+                            color: Color(0xFF92400E), fontSize: 14)),
+                  ]),
+                ),
+                ...pending.map((doc) {
+                  final d = doc.data() as Map<String, dynamic>;
+                  final name = d['name'] as String? ?? 'Unknown';
+                  final riderName = d['ownedByRiderName'] as String? ?? 'Unknown Rider';
+                  final address = d['address'] as String? ?? '';
+                  final category = d['category'] as String? ?? '';
+
+                  return Container(
+                    margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFFEF3C7)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
+                          const Icon(Icons.storefront_rounded, size: 18, color: Color(0xFF92400E)),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(name,
+                              style: const TextStyle(fontWeight: FontWeight.bold,
+                                  fontSize: 15, color: Color(0xFF1F2937)))),
+                        ]),
+                        const SizedBox(height: 4),
+                        Text('By: $riderName · $category',
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                        if (address.isNotEmpty)
+                          Text(address, style: TextStyle(color: Colors.grey.shade400, fontSize: 11)),
+                        const SizedBox(height: 10),
+                        Row(children: [
+                          // Approve
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.check_rounded, size: 16, color: Colors.white),
+                              label: const Text('Approve', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF10B981),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                elevation: 0,
+                              ),
+                              onPressed: () async {
+                                await FirebaseFirestore.instance
+                                    .collection('businesses')
+                                    .doc(doc.id)
+                                    .update({
+                                  'status': 'approved',
+                                  'approvedAt': FieldValue.serverTimestamp(),
+                                  'isOpen': false,
+                                });
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Reject
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.close_rounded, size: 16, color: Colors.white),
+                              label: const Text('Reject', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFEF4444),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                elevation: 0,
+                              ),
+                              onPressed: () async {
+                                final reasonCtrl = TextEditingController();
+                                final reason = await showDialog<String>(
+                                  context: ctx,
+                                  builder: (dctx) => AlertDialog(
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                    title: const Text('Reject Shop'),
+                                    content: Column(mainAxisSize: MainAxisSize.min, children: [
+                                      Text('Tell "$name" why their shop was rejected:',
+                                          style: const TextStyle(fontSize: 13)),
+                                      const SizedBox(height: 12),
+                                      TextField(
+                                        controller: reasonCtrl,
+                                        maxLines: 3,
+                                        decoration: InputDecoration(
+                                          hintText: 'e.g. Incomplete information',
+                                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                      ),
+                                    ]),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(dctx), child: const Text('Cancel')),
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                        onPressed: () => Navigator.pop(dctx, reasonCtrl.text.trim()),
+                                        child: const Text('Reject', style: TextStyle(color: Colors.white)),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                if (reason != null) {
+                                  await FirebaseFirestore.instance
+                                      .collection('businesses')
+                                      .doc(doc.id)
+                                      .update({
+                                    'status': 'rejected',
+                                    'rejectionReason': reason,
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ]),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ],
+            ),
+          );
+        },
+      ),
+      // ── EXISTING SHOPS LIST ───────────────────────────────────────────────
       Padding(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
         child: Row(children: [

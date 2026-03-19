@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:convert';
 import '../../models/order_model.dart';
 import '../../services/order_service.dart';
 import '../../services/location_service.dart';
@@ -9,6 +10,8 @@ import 'rider_fleet_map_screen.dart';
 import '../shared/chat_screen.dart';
 import '../shared/guest_language_switcher.dart';
 import '../../l10n/app_localizations.dart';
+import 'add_shop_screen.dart';
+import 'shop_management_screen.dart';
 
 class RiderHome extends StatefulWidget {
   const RiderHome({super.key});
@@ -34,7 +37,7 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
   void initState() {
     super.initState();
     uid = FirebaseAuth.instance.currentUser?.uid ?? "";
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     _tabController.addListener(() => setState(() => _tabIndex = _tabController.index));
     if (uid.isNotEmpty) {
       _locationService = LocationService(uid: uid);
@@ -198,10 +201,75 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                         unselectedLabelColor: Colors.white38,
                         labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                         tabs: [
+                          // My Shops tab
+                          Tab(
+                            icon: StreamBuilder<QuerySnapshot>(
+                              stream: FirebaseFirestore.instance
+                                  .collection('businesses')
+                                  .where('ownedByRiderId', isEqualTo: uid)
+                                  .snapshots(),
+                              builder: (ctx, s) {
+                                final count = s.data?.docs.length ?? 0;
+                                return Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    const Icon(Icons.storefront_rounded, size: 20),
+                                    if (count > 0)
+                                      Positioned(
+                                        top: -4, right: -6,
+                                        child: Container(
+                                          width: 14, height: 14,
+                                          decoration: const BoxDecoration(
+                                              color: Color(0xFF10B981), shape: BoxShape.circle),
+                                          child: Center(
+                                            child: Text('$count',
+                                                style: const TextStyle(
+                                                    color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              },
+                            ),
+                            text: 'My Shops',
+                          ),
                           Tab(icon: const Icon(Icons.delivery_dining_rounded, size: 20), text: AppLocalizations.of(context)!.myOrders),
                           Tab(icon: const Icon(Icons.radar_rounded, size: 20), text: AppLocalizations.of(context)!.radar),
                           Tab(icon: const Icon(Icons.map_rounded, size: 20), text: AppLocalizations.of(context)!.fleetMap),
                           const Tab(icon: Icon(Icons.account_balance_wallet_rounded, size: 20), text: 'Earnings'),
+                          Tab(
+                            icon: StreamBuilder<QuerySnapshot>(
+                              stream: FirebaseFirestore.instance
+                                  .collection('orders')
+                                  .doc('admin_rider_$uid')
+                                  .collection('messages')
+                                  .snapshots(),
+                              builder: (ctx, snap) {
+                                final count = snap.data?.docs.length ?? 0;
+                                return Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    const Icon(Icons.chat_bubble_rounded, size: 20),
+                                    if (count > 0)
+                                      Positioned(
+                                        top: -4,
+                                        right: -6,
+                                        child: Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: const BoxDecoration(
+                                            color: Colors.red,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              },
+                            ),
+                            text: 'Messages',
+                          ),
                         ],
                       ),
                     ],
@@ -214,10 +282,12 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                   controller: _tabController,
                   physics: const NeverScrollableScrollPhysics(),
                   children: [
+                    _buildMyShopsTab(),
                     _buildMyDeliveriesTab(data, walletBalance, collectedCash),
                     _buildOrderRadarTab(riderName),
                     const RiderFleetMapScreen(),
                     _buildEarningsTab(),
+                    _buildMessagesTab(),
                   ],
                 ),
               ),
@@ -688,6 +758,425 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
           ],
         ),
       ),
+    );
+  }
+
+  // ── MY SHOPS TAB ──────────────────────────────────────────────────────────
+  Widget _buildMyShopsTab() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('businesses')
+          .where('ownedByRiderId', isEqualTo: uid)
+          .snapshots(),
+      builder: (context, snap) {
+        final docs = snap.data?.docs ?? [];
+
+        return Stack(
+          children: [
+            if (!snap.hasData)
+              const Center(child: CircularProgressIndicator(color: Color(0xFFFF5E1E)))
+            else if (docs.isEmpty)
+              _emptyShopsState()
+            else
+              ListView(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 90),
+                children: [
+                  // Summary bar
+                  Row(children: [
+                    _shopStat('${docs.where((d) => (d.data() as Map)['status'] == 'approved').length}', 'Active', Colors.greenAccent),
+                    const SizedBox(width: 12),
+                    _shopStat('${docs.where((d) => (d.data() as Map)['status'] == 'pending').length}', 'Pending', const Color(0xFFFBBF24)),
+                    const SizedBox(width: 12),
+                    _shopStat('${docs.length}', 'Total', Colors.white),
+                  ]),
+                  const SizedBox(height: 20),
+                  const Text('YOUR SHOPS',
+                      style: TextStyle(color: Colors.white38, fontSize: 11,
+                          fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+                  const SizedBox(height: 12),
+                  ...docs.map((doc) {
+                    final d = doc.data() as Map<String, dynamic>;
+                    final status = d['status'] as String? ?? 'pending';
+                    final name = d['name'] as String? ?? 'Shop';
+                    final logo = d['logo'] as String? ?? '';
+                    final address = d['address'] as String? ?? '';
+                    final isOpen = d['isOpen'] as bool? ?? false;
+                    final approved = status == 'approved';
+                    final rejected = status == 'rejected';
+
+                    return GestureDetector(
+                      onTap: approved
+                          ? () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ShopManagementScreen(
+                                    businessId: doc.id,
+                                    shopName: name,
+                                    shopLogo: logo,
+                                  ),
+                                ),
+                              )
+                          : null,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 14),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: _kCard,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(
+                            color: approved
+                                ? (isOpen ? const Color(0xFF10B981) : Colors.white12)
+                                : rejected
+                                    ? const Color(0xFFEF4444).withOpacity(0.5)
+                                    : const Color(0xFFFBBF24).withOpacity(0.5),
+                            width: 1.5,
+                          ),
+                          boxShadow: [BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4))],
+                        ),
+                        child: Row(
+                          children: [
+                            // Logo
+                            Container(
+                              width: 58,
+                              height: 58,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white10,
+                                border: Border.all(color: Colors.white12),
+                              ),
+                              child: ClipOval(
+                                child: logo.isNotEmpty
+                                    ? Image.memory(base64Decode(logo), fit: BoxFit.cover)
+                                    : const Icon(Icons.storefront_rounded,
+                                        color: Colors.white38, size: 28),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(children: [
+                                    Expanded(
+                                      child: Text(name,
+                                          style: TextStyle(
+                                              color: approved ? Colors.white : Colors.white54,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16)),
+                                    ),
+                                    // Status badge
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: approved
+                                            ? const Color(0xFF10B981).withOpacity(0.2)
+                                            : rejected
+                                                ? const Color(0xFFEF4444).withOpacity(0.2)
+                                                : const Color(0xFFFBBF24).withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Text(
+                                        approved ? (isOpen ? '● Open' : '○ Closed') : status.toUpperCase(),
+                                        style: TextStyle(
+                                          color: approved
+                                              ? (isOpen ? const Color(0xFF10B981) : Colors.white38)
+                                              : rejected
+                                                  ? const Color(0xFFEF4444)
+                                                  : const Color(0xFFFBBF24),
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ]),
+                                  const SizedBox(height: 4),
+                                  Text(address,
+                                      style: const TextStyle(color: Colors.white38, fontSize: 12),
+                                      overflow: TextOverflow.ellipsis),
+                                  if (rejected && (d['rejectionReason'] as String? ?? '').isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 6),
+                                      child: Text('Reason: ${d['rejectionReason']}',
+                                          style: const TextStyle(
+                                              color: Color(0xFFEF4444), fontSize: 11)),
+                                    ),
+                                  if (approved) ...[
+                                    const SizedBox(height: 8),
+                                    // Live order count
+                                    StreamBuilder<QuerySnapshot>(
+                                      stream: FirebaseFirestore.instance
+                                          .collection('orders')
+                                          .where('businessId', isEqualTo: doc.id)
+                                          .where('status', isEqualTo: 'looking_for_rider')
+                                          .snapshots(),
+                                      builder: (ctx, oSnap) {
+                                        final count = oSnap.data?.docs.length ?? 0;
+                                        return Row(children: [
+                                          Icon(Icons.receipt_long_rounded,
+                                              size: 13,
+                                              color: count > 0 ? _kPrimary : Colors.white30),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            count > 0 ? '$count new order${count > 1 ? 's' : ''}!' : 'No pending orders',
+                                            style: TextStyle(
+                                                color: count > 0 ? _kPrimary : Colors.white30,
+                                                fontSize: 12,
+                                                fontWeight: count > 0 ? FontWeight.bold : FontWeight.normal),
+                                          ),
+                                        ]);
+                                      },
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            if (approved)
+                              const Icon(Icons.chevron_right_rounded, color: Colors.white24),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ),
+            // FAB — Add Shop
+            Positioned(
+              bottom: 16,
+              right: 16,
+              child: FloatingActionButton.extended(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AddShopScreen()),
+                ),
+                backgroundColor: _kPrimary,
+                icon: const Icon(Icons.add, color: Colors.white),
+                label: const Text('Add a Shop',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _shopStat(String value, String label, Color color) => Expanded(
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: color.withOpacity(0.25))),
+          child: Column(children: [
+            Text(value,
+                style: TextStyle(
+                    color: color, fontWeight: FontWeight.w900, fontSize: 22)),
+            Text(label,
+                style: const TextStyle(color: Colors.white38, fontSize: 11)),
+          ]),
+        ),
+      );
+
+  Widget _emptyShopsState() => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Container(
+              width: 100, height: 100,
+              decoration: BoxDecoration(
+                  color: _kPrimary.withOpacity(0.1),
+                  shape: BoxShape.circle),
+              child: const Icon(Icons.storefront_outlined,
+                  color: Color(0xFFFF5E1E), size: 48),
+            ),
+            const SizedBox(height: 20),
+            const Text('No Shops Yet',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
+            const SizedBox(height: 8),
+            const Text(
+              'Partner with local coffee shops and restaurants.\nAdd their menus and start taking digital orders!',
+              style: TextStyle(color: Colors.white38, fontSize: 13, height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 28),
+            ElevatedButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AddShopScreen()),
+              ),
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text('Add Your First Shop',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _kPrimary,
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 0,
+              ),
+            ),
+          ]),
+        ),
+      );
+
+  // ── MESSAGES TAB ──────────────────────────────────────────────────────────
+  Widget _buildMessagesTab() {
+    final channelId = 'admin_rider_$uid';
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('orders')
+          .doc(channelId)
+          .collection('messages')
+          .orderBy('timestamp', descending: true)
+          .limit(1)
+          .snapshots(),
+      builder: (context, snap) {
+        final hasMessages = (snap.data?.docs.isNotEmpty) ?? false;
+        final lastMsg = hasMessages
+            ? (snap.data!.docs.first.data() as Map)['text'] as String? ?? ''
+            : 'No messages yet — tap to start chatting';
+
+        return ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            // Header
+            const Text(
+              'INBOX',
+              style: TextStyle(
+                color: Colors.white38,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Shop Owner conversation card
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChatScreen(
+                    orderId: channelId,
+                    otherPartyName: 'Shop Owner',
+                  ),
+                ),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: _kCard,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: hasMessages
+                        ? _kPrimary.withOpacity(0.4)
+                        : Colors.white12,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    // Avatar
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [Color(0xFFFF5E1E), Color(0xFFFF8045)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      child: const Icon(Icons.storefront_rounded,
+                          color: Colors.white, size: 26),
+                    ),
+                    const SizedBox(width: 14),
+                    // Content
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Shop Owner',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            lastMsg,
+                            style: TextStyle(
+                              color: hasMessages
+                                  ? Colors.white60
+                                  : Colors.white30,
+                              fontSize: 13,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            maxLines: 1,
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Unread dot
+                    if (hasMessages)
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFF5E1E),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.chevron_right_rounded,
+                        color: Colors.white24),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Tip card
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded,
+                      color: Colors.white30, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Messages from your shop owner appear here. You\'ll see a red dot on this tab when new messages arrive.',
+                      style: TextStyle(
+                          color: Colors.white38,
+                          fontSize: 12,
+                          height: 1.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

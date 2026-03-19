@@ -139,11 +139,17 @@ class _CouponManagerTabState extends State<CouponManagerTab> {
         stream: FirebaseFirestore.instance
             .collection('coupons')
             .where('businessId', isEqualTo: widget.businessId)
-            .orderBy('createdAt', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          final docs = snapshot.data!.docs;
+          // Sort client-side (newest first) — avoids needing a composite Firestore index
+          final docs = snapshot.data!.docs.toList()
+            ..sort((a, b) {
+              final aTs = (a.data() as Map)['createdAt'];
+              final bTs = (b.data() as Map)['createdAt'];
+              if (aTs == null || bTs == null) return 0;
+              return (bTs as dynamic).compareTo(aTs as dynamic);
+            });
 
           if (docs.isEmpty) {
             return Center(
