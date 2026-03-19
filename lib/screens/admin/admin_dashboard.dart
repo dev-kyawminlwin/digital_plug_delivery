@@ -6,11 +6,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'shop_location_picker_screen.dart';
 import '../../services/user_service.dart';
 import '../../services/business_service.dart';
 import '../../services/order_service.dart';
 import '../../services/seed_service.dart';
+import '../../services/browser_notification_service.dart';
 import '../shared/app_components.dart';
 import '../shared/guest_language_switcher.dart';
 import '../../l10n/app_localizations.dart';
@@ -20,6 +22,7 @@ import 'vendor_ledger_tab.dart';
 import 'vendor_fleet_tab.dart';
 import '../../models/order_model.dart';
 import '../../services/image_helper.dart';
+import 'coupon_manager_tab.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -30,10 +33,23 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   int _currentIndex = 0;
+
+  // Notification permission requested once
+  bool _notifPermRequested = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _dashboardDataFuture = _loadDashboardData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      BrowserNotificationService.requestPermission();
+    });
+  }
+
   bool _isLoading = true;
   Map<String, dynamic>? _userData;
   Map<String, dynamic>? _bizData;
-  
+
   late Future<Map<String, dynamic>> _dashboardDataFuture;
 
   static const Color _kPrimary = Color(0xFFFF5E1E);
@@ -63,12 +79,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     {'name': 'Yellow', 'hex': '#F59E0B', 'color': Colors.amber},
     {'name': 'Dark', 'hex': '#1F2937', 'color': Color(0xFF1F2937)},
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    _dashboardDataFuture = _loadDashboardData();
-  }
 
   Future<Map<String, dynamic>> _loadDashboardData() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -240,6 +250,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               VendorRatingsTab(businessId: businessId),
               VendorLedgerTab(businessId: businessId),
               VendorFleetTab(businessId: businessId),
+              CouponManagerTab(businessId: businessId),
             ];
 
             return Scaffold(
@@ -408,7 +419,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         StreamBuilder<QuerySnapshot>(
                           stream: FirebaseFirestore.instance
                               .collection('orders')
-                              .where('businessId', isEqualTo: bizData['id'] ?? doc.id)
+                              .where('businessId', isEqualTo: businessId)
                               .where('status', isEqualTo: 'looking_for_rider')
                               .snapshots(),
                           builder: (ctx, orderSnap) {
@@ -421,6 +432,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         _navItem(3, Icons.star_rounded, Icons.star_outline_rounded, AppLocalizations.of(context)!.tabRatings),
                         _navItem(4, Icons.account_balance_wallet_rounded, Icons.account_balance_wallet_outlined, AppLocalizations.of(context)!.tabLedger),
                         _navItem(5, Icons.motorcycle_rounded, Icons.motorcycle_outlined, AppLocalizations.of(context)!.tabFleet),
+                        _navItem(6, Icons.local_offer_rounded, Icons.local_offer_outlined, 'Coupons'),
                       ],
                     ),
                   ),
@@ -503,8 +515,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
         if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-        final orders = snapshot.data!;
-        return ListView(
+          final orders = snapshot.data!;
+
+          // Fire browser notification for new orders
+          if (orders.any((o) => o.status == OrderStatus.lookingForRider)) {
+            BrowserNotificationService.notify(
+              title: '🛒 New Order!',
+              body: 'A customer is waiting — tap to manage orders.',
+            );
+          }
+
+          return ListView(
           padding: const EdgeInsets.all(16),
           children: [
             _buildAnalyticsHeader(orders),
@@ -604,8 +625,86 @@ class _AdminDashboardState extends State<AdminDashboard> {
               Expanded(child: _analyticsChip("Orders", "${orders.length}")),
             ],
           ),
+          const SizedBox(height: 20),
+          // ── 7-Day Revenue Bar Chart ──────────────────────────────────────
+          _buildRevenueChart(orders),
         ],
       ),
+    );
+  }
+
+  Widget _buildRevenueChart(List<OrderModel> orders) {
+    final now = DateTime.now();
+    final days = List.generate(7, (i) => now.subtract(Duration(days: 6 - i)));
+    final dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    final dayTotals = days.map((day) {
+      return orders
+          .where((o) =>
+              o.status == OrderStatus.completed &&
+              o.createdAt.year == day.year &&
+              o.createdAt.month == day.month &&
+              o.createdAt.day == day.day)
+          .fold<double>(0.0, (sum, o) => sum + o.totalPrice);
+    }).toList();
+
+    final maxY = dayTotals.reduce((a, b) => a > b ? a : b);
+    final chartMax = maxY == 0 ? 100.0 : (maxY * 1.3);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Revenue — Last 7 Days',
+            style: TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 100,
+          child: BarChart(
+            BarChartData(
+              maxY: chartMax,
+              minY: 0,
+              gridData: const FlGridData(show: false),
+              borderData: FlBorderData(show: false),
+              titlesData: FlTitlesData(
+                leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (v, meta) => Text(
+                      dayLabels[v.toInt() % 7],
+                      style: const TextStyle(color: Colors.white38, fontSize: 9),
+                    ),
+                    reservedSize: 20,
+                  ),
+                ),
+              ),
+              barTouchData: BarTouchData(
+                touchTooltipData: BarTouchTooltipData(
+                  getTooltipItem: (group, groupIndex, rod, rodIndex) => BarTooltipItem(
+                    'THB ${rod.toY.toStringAsFixed(0)}',
+                    const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                  ),
+                ),
+              ),
+              barGroups: List.generate(7, (i) => BarChartGroupData(
+                x: i,
+                barRods: [
+                  BarChartRodData(
+                    toY: dayTotals[i],
+                    color: dayTotals[i] > 0
+                        ? const Color(0xFFFF5E1E)
+                        : Colors.white.withOpacity(0.12),
+                    width: 20,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ],
+              )),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

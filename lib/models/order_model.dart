@@ -73,6 +73,7 @@ class OrderModel {
   final String itemsSummary; // Phase 14: Human-readable items list for order cards
   final double customerLat; // Phase 15: GPS Navigation
   final double customerLng; // Phase 15: GPS Navigation
+  final String cancellationReason;
 
   OrderModel({
     required this.id,
@@ -93,6 +94,7 @@ class OrderModel {
     this.itemsSummary = '',
     this.customerLat = 0.0,
     this.customerLng = 0.0,
+    this.cancellationReason = '',
   });
 
   // 3. Factory for reading from Firestore
@@ -118,6 +120,7 @@ class OrderModel {
       itemsSummary: map['itemsSummary'] as String? ?? '',
       customerLat: (map['customerLat'] as num?)?.toDouble() ?? 0.0,
       customerLng: (map['customerLng'] as num?)?.toDouble() ?? 0.0,
+      cancellationReason: map['cancellationReason'] as String? ?? '',
     );
   }
 
@@ -141,6 +144,7 @@ class OrderModel {
       'itemsSummary': itemsSummary,
       'customerLat': customerLat,
       'customerLng': customerLng,
+      'cancellationReason': cancellationReason,
     };
   }
 }

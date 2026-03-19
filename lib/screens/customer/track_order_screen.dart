@@ -1,9 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../models/order_model.dart';
-import '../shared/chat_screen.dart'; // Phase 16: Live Chat
+import '../shared/chat_screen.dart';
 
 class TrackOrderScreen extends StatefulWidget {
   final String orderId;
@@ -15,6 +16,73 @@ class TrackOrderScreen extends StatefulWidget {
 
 class _TrackOrderScreenState extends State<TrackOrderScreen> {
   final MapController _mapController = MapController();
+  int _cancelSecondsLeft = 0;
+  Timer? _cancelTimer;
+  bool _hasStartedTimer = false;
+
+  @override
+  void dispose() {
+    _cancelTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startCancelTimer(DateTime createdAt) {
+    if (_hasStartedTimer) return;
+    _hasStartedTimer = true;
+    final deadline = createdAt.add(const Duration(minutes: 2));
+    final remaining = deadline.difference(DateTime.now()).inSeconds;
+    if (remaining <= 0) return;
+    setState(() => _cancelSecondsLeft = remaining);
+    _cancelTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) { t.cancel(); return; }
+      setState(() => _cancelSecondsLeft--);
+      if (_cancelSecondsLeft <= 0) t.cancel();
+    });
+  }
+
+  void _showCancelDialog(String orderId) {
+    final reasons = ['Changed my mind', 'Ordered by mistake', 'Taking too long', 'Other'];
+    String selected = reasons[0];
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialog) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Cancel Order?', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Select a reason:', style: TextStyle(color: Colors.grey, fontSize: 13)),
+              const SizedBox(height: 8),
+              ...reasons.map((r) => RadioListTile<String>(
+                value: r, groupValue: selected,
+                onChanged: (v) => setDialog(() => selected = v!),
+                title: Text(r, style: const TextStyle(fontSize: 13)),
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+              )),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Keep Order')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () async {
+                Navigator.pop(ctx);
+                await FirebaseFirestore.instance.collection('orders').doc(orderId).update({
+                  'status': 'cancelled',
+                  'cancellationReason': selected,
+                  'cancelledAt': FieldValue.serverTimestamp(),
+                });
+              },
+              child: const Text('Cancel Order', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   String _getDynamicETA(OrderStatus status) {
     switch (status) {
@@ -54,8 +122,42 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
           }
 
           final order = OrderModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
-          
+
+          // Start 2-min cancel countdown from order createdAt
+          if (order.createdAt != null && order.status == OrderStatus.lookingForRider) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _startCancelTimer(order.createdAt!);
+            });
+          }
+
+          // Cancelled state
+          if (order.status.toString().contains('cancelled')) {
+            return Scaffold(
+              backgroundColor: Colors.white,
+              body: Center(child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(width: 80, height: 80, decoration: const BoxDecoration(color: Color(0xFFFEE2E2), shape: BoxShape.circle),
+                      child: const Icon(Icons.cancel_rounded, color: Colors.red, size: 44)),
+                  const SizedBox(height: 16),
+                  const Text('Order Cancelled', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF1F2937))),
+                  const SizedBox(height: 8),
+                  Text(order.cancellationReason.isNotEmpty ? 'Reason: ${order.cancellationReason}' : '',
+                      style: const TextStyle(color: Colors.grey)),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst),
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF5E1E),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                    child: const Text('Back to Home', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              )),
+            );
+          }
+
           return Stack(
+
             children: [
               // 1. Edge-to-Edge Map Background
               _buildMapBackground(order),
@@ -263,6 +365,41 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                             child: Text("Preparing your order... Waiting for Rider assignment.", 
                                 textAlign: TextAlign.center,
                                 style: TextStyle(color: Color(0xFFEA580C), fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+
+                      // ── Cancel button (2-minute window) ──────────────────
+                      if (order.status == OrderStatus.lookingForRider && _cancelSecondsLeft > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: GestureDetector(
+                            onTap: () => _showCancelDialog(order.id),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEF2F2),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: const Color(0xFFFCA5A5)),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.cancel_outlined, color: Colors.red, size: 18),
+                                  const SizedBox(width: 8),
+                                  const Text('Cancel Order',
+                                      style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(8)),
+                                    child: Text(
+                                      '${_cancelSecondsLeft ~/ 60}:${(_cancelSecondsLeft % 60).toString().padLeft(2, '0')}',
+                                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
 
