@@ -162,19 +162,19 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                             height: 100,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: currentAvatar.isEmpty ? Colors.grey.shade200 : null,
+                              color: (!_hasAvatar(currentAvatar)) ? Colors.grey.shade200 : null,
                               border: Border.all(color: Colors.white, width: 4),
                               boxShadow: [
                                 BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 16, offset: const Offset(0, 6))
                               ],
-                              image: currentAvatar.isNotEmpty
+                              image: _hasAvatar(currentAvatar)
                                   ? DecorationImage(
                                       image: AssetImage('assets/images/$currentAvatar.png'),
                                       fit: BoxFit.cover,
                                     )
                                   : null,
                             ),
-                            child: currentAvatar.isEmpty
+                            child: (!_hasAvatar(currentAvatar))
                                 ? const Icon(Icons.person_rounded, size: 52, color: Colors.grey)
                                 : null,
                           ),
@@ -431,6 +431,10 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
         ],
       ),
     );
+  }
+
+  bool _hasAvatar(String avatarName) {
+    return avatarName == '3d_male_avatar' || avatarName == '3d_female_avatar';
   }
 
   Widget _buildAvatarOption(String avatarName, bool isSelected, String label) {

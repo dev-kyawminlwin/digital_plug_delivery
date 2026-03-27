@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img;
 import 'dart:typed_data';
+import 'package:latlong2/latlong.dart';
+import '../customer/map_picker_screen.dart';
 
 class ShopSettingsTab extends StatefulWidget {
   final String businessId;
@@ -24,10 +26,15 @@ class _ShopSettingsTabState extends State<ShopSettingsTab> {
   final _deliveryFeeCtrl = TextEditingController();
   final _minOrderCtrl = TextEditingController();
 
+  TimeOfDay? _openTime;
+  TimeOfDay? _closeTime;
+
   bool _isOpen = false;
   bool _isSaving = false;
   bool _loaded = false;
   String? _logoBase64;
+  String? _bannerBase64;
+  GeoPoint? _shopLocation;
 
   @override
   void initState() {
@@ -46,10 +53,25 @@ class _ShopSettingsTabState extends State<ShopSettingsTab> {
       _phoneCtrl.text = d['phone'] ?? '';
       _deliveryFeeCtrl.text = '${(d['deliveryFee'] as num?)?.toInt() ?? 20}';
       _minOrderCtrl.text = '${(d['minOrderAmount'] as num?)?.toInt() ?? 0}';
+      _openTime = _parseTime(d['openTime'] as String?);
+      _closeTime = _parseTime(d['closeTime'] as String?);
       _isOpen = d['isOpen'] as bool? ?? false;
       _logoBase64 = d['logo'] as String?;
+      _bannerBase64 = d['imageUrl'] as String?;
+      _shopLocation = d['location'] as GeoPoint?;
       _loaded = true;
     });
+  }
+
+  TimeOfDay? _parseTime(String? t) {
+    if (t == null || !t.contains(':')) return null;
+    final p = t.split(':');
+    return TimeOfDay(hour: int.tryParse(p[0]) ?? 0, minute: int.tryParse(p[1]) ?? 0);
+  }
+
+  String? _formatTime(TimeOfDay? t) {
+    if (t == null) return null;
+    return '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
   }
 
   Future<void> _pickLogo() async {
@@ -64,6 +86,34 @@ class _ShopSettingsTabState extends State<ShopSettingsTab> {
     setState(() => _logoBase64 = base64Encode(compressed));
   }
 
+  Future<void> _pickBanner() async {
+    final picker = ImagePicker();
+    final xfile = await picker.pickImage(source: ImageSource.gallery, maxWidth: 800, imageQuality: 80);
+    if (xfile == null) return;
+    final bytes = await xfile.readAsBytes();
+    final decoded = img.decodeImage(bytes);
+    if (decoded == null) return;
+    final resized = img.copyResize(decoded, width: 800);
+    final compressed = Uint8List.fromList(img.encodeJpg(resized, quality: 75));
+    setState(() => _bannerBase64 = base64Encode(compressed));
+  }
+
+  Future<void> _pickLocation() async {
+    final result = await Navigator.push<LatLng>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MapPickerScreen(
+          initialLocation: _shopLocation != null ? LatLng(_shopLocation!.latitude, _shopLocation!.longitude) : null,
+          title: "Set Shop Location",
+          subtitle: "Drag the map to pin exactly where your shop is located.",
+        ),
+      ),
+    );
+    if (result != null) {
+      setState(() => _shopLocation = GeoPoint(result.latitude, result.longitude));
+    }
+  }
+
   Future<void> _save() async {
     setState(() => _isSaving = true);
     await FirebaseFirestore.instance.collection('businesses').doc(widget.businessId).update({
@@ -73,8 +123,12 @@ class _ShopSettingsTabState extends State<ShopSettingsTab> {
       'phone': _phoneCtrl.text.trim(),
       'deliveryFee': double.tryParse(_deliveryFeeCtrl.text) ?? 20.0,
       'minOrderAmount': double.tryParse(_minOrderCtrl.text) ?? 0.0,
+      'openTime': _formatTime(_openTime),
+      'closeTime': _formatTime(_closeTime),
       'isOpen': _isOpen,
       if (_logoBase64 != null) 'logo': _logoBase64,
+      if (_bannerBase64 != null) 'imageUrl': _bannerBase64,
+      if (_shopLocation != null) 'location': _shopLocation,
     });
     setState(() => _isSaving = false);
     if (mounted) {
@@ -163,12 +217,39 @@ class _ShopSettingsTabState extends State<ShopSettingsTab> {
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(17),
                     child: Image.memory(base64Decode(_logoBase64!),
-                        fit: BoxFit.cover, width: double.infinity),
+                        fit: BoxFit.contain, width: double.infinity),
                   )
                 : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                     Icon(Icons.add_photo_alternate_outlined, size: 32, color: Colors.grey.shade400),
                     const SizedBox(height: 6),
                     Text('Tap to change logo', style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+                  ]),
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // Banner
+        _label('Shop Cover Banner'),
+        GestureDetector(
+          onTap: _pickBanner,
+          child: Container(
+            height: 140,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+            ),
+            child: _bannerBase64 != null && _bannerBase64!.isNotEmpty
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(17),
+                    child: Image.memory(base64Decode(_bannerBase64!),
+                        fit: BoxFit.cover, width: double.infinity),
+                  )
+                : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Icon(Icons.panorama_outlined, size: 36, color: Colors.grey.shade400),
+                    const SizedBox(height: 6),
+                    Text('Tap to change cover banner', style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
                   ]),
           ),
         ),
@@ -183,7 +264,46 @@ class _ShopSettingsTabState extends State<ShopSettingsTab> {
           const SizedBox(height: 12),
           _field(_phoneCtrl, 'Phone', Icons.phone_outlined, type: TextInputType.phone),
           const SizedBox(height: 12),
-          _field(_addressCtrl, 'Address', Icons.location_on_outlined, maxLines: 2),
+          _field(_addressCtrl, 'Address Text', Icons.location_on_outlined, maxLines: 2),
+          const SizedBox(height: 16),
+          // Set Location on Map Button
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: _pickLocation,
+              icon: Icon(Icons.map_rounded, color: _shopLocation != null ? Colors.green : const Color(0xFFFF5E1E)),
+              label: Text(
+                _shopLocation != null ? "Location Pinned ✓" : "Pin Location on Map",
+                style: TextStyle(
+                  color: _shopLocation != null ? Colors.green : const Color(0xFF1F2937),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: _shopLocation != null ? Colors.green : const Color(0xFFE5E7EB)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+        ])),
+        const SizedBox(height: 20),
+
+        _label('Operating Hours'),
+        _card(Row(children: [
+          Expanded(
+            child: _timeField('Open Time', _openTime, () async {
+              final t = await showTimePicker(context: context, initialTime: _openTime ?? const TimeOfDay(hour: 9, minute: 0));
+              if (t != null) setState(() => _openTime = t);
+            }),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _timeField('Close Time', _closeTime, () async {
+              final t = await showTimePicker(context: context, initialTime: _closeTime ?? const TimeOfDay(hour: 22, minute: 0));
+              if (t != null) setState(() => _closeTime = t);
+            }),
+          ),
         ])),
         const SizedBox(height: 20),
 
@@ -257,4 +377,35 @@ class _ShopSettingsTabState extends State<ShopSettingsTab> {
           labelStyle: const TextStyle(color: Color(0xFF6B7280)),
         ),
       );
+
+  Widget _timeField(String label, TimeOfDay? time, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF9FAFB),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.access_time, color: Color(0xFF6B7280), size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+                  const SizedBox(height: 2),
+                  Text(time != null ? time.format(context) : 'Not Set',
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

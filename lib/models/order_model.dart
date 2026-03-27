@@ -57,6 +57,7 @@ class OrderModel {
   // 2. Class Fields
   final String id;
   final String businessId;
+  final String businessName;
   final String customerId;
   final String customerName;
   final String phone;
@@ -78,6 +79,7 @@ class OrderModel {
   OrderModel({
     required this.id,
     required this.businessId,
+    required this.businessName,
     required this.customerId,
     required this.customerName,
     required this.phone,
@@ -102,6 +104,7 @@ class OrderModel {
     return OrderModel(
       id: docId,
       businessId: map['businessId'] ?? '', // Default to empty if missing
+      businessName: map['businessName'] ?? '',
       customerId: map['customerId'] ?? '',
       customerName: map['customerName'] ?? '',
       phone: map['phone'] ?? '',
@@ -128,6 +131,7 @@ class OrderModel {
   Map<String, dynamic> toMap() {
     return {
       'businessId': businessId, // Critical: Ties the order to the shop
+      'businessName': businessName,
       'customerId': customerId,
       'customerName': customerName,
       'phone': phone,

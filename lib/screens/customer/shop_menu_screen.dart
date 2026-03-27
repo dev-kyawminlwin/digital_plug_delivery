@@ -29,6 +29,8 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
   List<String> _favoriteProducts = []; // Phase 6: Product Modal Favorites
   String _selectedCategory = 'All'; // Phase 6: Category Filtering
   String _shopImageUrl = '';
+  String _openTime = '';
+  String _closeTime = '';
 
   @override
   void initState() {
@@ -42,6 +44,8 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
     if(doc.exists && mounted) {
       setState(() {
         _shopImageUrl = doc.data()?['imageUrl'] ?? '';
+        _openTime = doc.data()?['openTime'] ?? '';
+        _closeTime = doc.data()?['closeTime'] ?? '';
       });
     }
   }
@@ -684,6 +688,20 @@ class _ShopMenuScreenState extends State<ShopMenuScreen> {
                                     ],
                                   ),
                                 ),
+                                if (_openTime.isNotEmpty && _closeTime.isNotEmpty) ...[
+                                  const SizedBox(width: 12),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.3))),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.storefront_rounded, color: Colors.white, size: 16),
+                                        const SizedBox(width: 4),
+                                        Text("$_openTime - $_closeTime", style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ],

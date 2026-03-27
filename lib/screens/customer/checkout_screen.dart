@@ -4,6 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'map_picker_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final String businessId;
@@ -29,7 +32,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
-  final _addressCtrl = TextEditingController();
   final _couponCtrl = TextEditingController();
 
   String _selectedPaymentMethod = 'Cash';
@@ -69,7 +71,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void dispose() {
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
-    _addressCtrl.dispose();
     _couponCtrl.dispose();
     super.dispose();
   }
@@ -83,7 +84,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       setState(() {
         _nameCtrl.text = data['name'] ?? '';
         _phoneCtrl.text = data['phone'] ?? '';
-        _addressCtrl.text = data['address'] ?? '';
       });
     }
   }
@@ -219,6 +219,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void _placeOrder() async {
     if (!_formKey.currentState!.validate()) return;
     if (_minOrderAmount > 0 && widget.subtotal < _minOrderAmount) return;
+    if (_customerLat == 0.0 || _customerLng == 0.0) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Please pin your delivery location on the map.'),
+        backgroundColor: Colors.red.shade700,
+        behavior: SnackBarBehavior.floating,
+      ));
+      return;
+    }
     setState(() => _isPlacingOrder = true);
 
     String orderSummary = '';
@@ -244,7 +252,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         'isGuestOrder': uid == 'guest',
         'customerName': _nameCtrl.text,
         'phone': _phoneCtrl.text,
-        'address': _addressCtrl.text,
+        'address': 'Pinned on Map',
         'itemsSummary': orderSummary.trim(),
         'subtotal': widget.subtotal,
         'couponDiscount': _couponDiscount,
@@ -656,8 +664,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 const SizedBox(height: 12),
                 _textField(_phoneCtrl, 'Phone Number', Icons.phone_outlined,
                     type: TextInputType.phone),
-                const SizedBox(height: 12),
-                _textFieldMulti(_addressCtrl, 'Full Delivery Address', Icons.location_on_outlined),
+                const SizedBox(height: 16),
+                _buildMapCard(),
               ]),
             ),
             const SizedBox(height: 20),
@@ -753,20 +761,115 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
       );
 
-  Widget _textFieldMulti(TextEditingController ctrl, String label, IconData icon) =>
-      TextFormField(
-        controller: ctrl,
-        maxLines: 2,
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: Icon(icon, color: const Color(0xFF6B7280), size: 20),
-          filled: true,
-          fillColor: const Color(0xFFF9FAFB),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _kPrimary, width: 2)),
-          labelStyle: const TextStyle(color: Color(0xFF6B7280)),
-        ),
-        validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
-      );
+  Widget _buildMapCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _customerLat != 0 ? Colors.green : const Color(0xFFE5E7EB), width: _customerLat != 0 ? 2 : 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: 140,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(13)),
+              child: Stack(
+                children: [
+                  if (_customerLat != 0)
+                    FlutterMap(
+                      options: MapOptions(
+                        initialCenter: LatLng(_customerLat, _customerLng),
+                        initialZoom: 16.0,
+                        interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.digitalplug.delivery',
+                        ),
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              point: LatLng(_customerLat, _customerLng),
+                              width: 40,
+                              height: 40,
+                              child: const Icon(Icons.location_on, color: Color(0xFFFF5E1E), size: 40),
+                            ),
+                          ],
+                        ),
+                      ],
+                    )
+                  else
+                    Container(
+                      color: Colors.grey.shade200,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.map_outlined, size: 32, color: Colors.grey.shade400),
+                            const SizedBox(height: 8),
+                            Text('No location pinned yet', style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  
+                  if (_customerLat != 0)
+                    Positioned(
+                      top: 8, right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(8)),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.check_circle, color: Colors.white, size: 14),
+                            SizedBox(width: 4),
+                            Text('Location Saved', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () async {
+                final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => MapPickerScreen(
+                  initialLocation: _customerLat != 0 ? LatLng(_customerLat, _customerLng) : null,
+                )));
+                if (result != null && result is LatLng) {
+                  setState(() {
+                    _customerLat = result.latitude;
+                    _customerLng = result.longitude;
+                  });
+                }
+              },
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(13)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(_customerLat != 0 ? Icons.edit_location_alt_outlined : Icons.add_location_alt_outlined, color: _kPrimary, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      _customerLat != 0 ? 'Change Pinned Location' : 'Tap to Pin Location',
+                      style: const TextStyle(color: _kPrimary, fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

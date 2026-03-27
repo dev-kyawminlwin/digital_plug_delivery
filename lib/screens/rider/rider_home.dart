@@ -390,8 +390,8 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                       child: ElevatedButton(
                         onPressed: () async {
                           bool success = await _orderService.acceptOrder(order.id, uid, riderName);
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(success
                                     ? "✅ Order accepted! Check My Orders."
@@ -402,7 +402,7 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                                 margin: const EdgeInsets.all(16),
                               ),
                             );
-                          }
+                          
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _kPrimary,
@@ -455,9 +455,9 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                       'walletBalance': 0,
                       'collectedCash': 0,
                     });
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
                           content: const Text("Balances settled ✓"),
                           backgroundColor: _kPrimary,
                           behavior: SnackBarBehavior.floating,
@@ -465,7 +465,7 @@ class _RiderHomeState extends State<RiderHome> with SingleTickerProviderStateMix
                           margin: const EdgeInsets.all(16),
                         ),
                       );
-                    }
+                    
                   },
                 ),
               ),

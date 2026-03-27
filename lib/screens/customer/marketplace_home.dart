@@ -140,14 +140,14 @@ class _MarketplaceHomeState extends State<MarketplaceHome> {
                                   border: Border.all(
                                     color: const Color(0xFF10B981).withValues(alpha: 0.4),
                                   ),
-                                  image: avatar.isNotEmpty
+                                  image: (avatar == '3d_male_avatar' || avatar == '3d_female_avatar')
                                       ? DecorationImage(
                                           image: AssetImage('assets/images/$avatar.png'),
                                           fit: BoxFit.cover,
                                         )
                                       : null,
                                 ),
-                                child: avatar.isEmpty
+                                child: !(avatar == '3d_male_avatar' || avatar == '3d_female_avatar')
                                     ? const Icon(
                                         Icons.person_outline_rounded,
                                         color: _kDark,
